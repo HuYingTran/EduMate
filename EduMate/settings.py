@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-culu2ii@!c0c!x4=113n32p!erg7=xdg5!l))y0o@z$0evmrtb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['pythonIoT.pythonanywhere.com']
+ALLOWED_HOSTS = ['pythonIoT.pythonanywhere.com', "*", "raspberrypi.local"]
 
 
 # Application definition
@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "reflect",
+    "user",
 ]
 
 MIDDLEWARE = [
@@ -54,7 +56,7 @@ ROOT_URLCONF = "EduMate.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        'DIRS': [BASE_DIR / "templates"],   # 👈 đảm bảo dòng này
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -79,7 +81,6 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -128,3 +129,6 @@ MEDIA_ROOT = '/home/pythonIoT/EduMate/media'
 MEDIA_URL = '/media/'
 STATIC_ROOT = '/home/pythonIoT/EduMate/static'
 STATIC_URL = '/static/'
+
+
+CSRF_FAILURE_VIEW = "user.views.csrf_failure"

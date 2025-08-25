@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Danh sách {{ user_type }}{% endblock %}
+
+{% block content %}
+<h2>Danh sách {{ user_type }}</h2>
+
+<!-- Nút thêm SV / GV -->
+{% if user_type == "SV" %}
+    <a href="{% url 'sv_register' %}" class="btn btn-primary mb-2">Thêm {{ user_type }}</a>
+{% else %}
+    <a href="{% url 'gv_register' %}" class="btn btn-primary mb-2">Thêm {{ user_type }}</a>
+{% endif %}
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Họ tên</th>
+            <th>Email</th>
+            <th>Trạng thái</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in users %}
+        <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.ho_ten }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.get_status_display }}</td>
+            <!-- Xem chi tiết -->
+            {% if user_type == "SV" %}
+                <td><a href="{% url 'sv_detail' u.id %}" class="btn btn-info btn-sm">Xem</a></td>
+            {% else %}
+                <td><a href="{% url 'gv_detail' u.id %}" class="btn btn-info btn-sm">Xem</a></td>
+            {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">Không có {{ user_type }} nào.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

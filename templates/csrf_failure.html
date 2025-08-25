@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="alert alert-danger">
+    <h4>❌ Lỗi bảo mật</h4>
+    <p>Phiên đăng nhập của bạn có thể đã hết hạn hoặc có lỗi bảo mật CSRF.</p>
+    <p>Vui lòng <a href="{% url 'student_login' %}">đăng nhập lại</a> để tiếp tục.</p>
+  </div>
+</div>
+{% endblock %}
