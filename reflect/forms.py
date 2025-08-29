@@ -1,5 +1,5 @@
 from django import forms
-from .models import Reflect
+from .models import Reflect, Document
 
 class ReflectForm(forms.ModelForm):
     class Meta:
@@ -9,3 +9,9 @@ class ReflectForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Tiêu đề'}),
             'content': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Nội dung phản ánh'}),
         }
+
+
+class DocumentForm(forms.ModelForm):
+    class Meta:
+        model = Document
+        fields = ['name', 'type', 'file']

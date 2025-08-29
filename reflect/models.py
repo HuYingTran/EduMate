@@ -10,3 +10,19 @@ class Reflect(models.Model):
 
     def __str__(self):
         return self.title
+    
+# Lĩnh vực / Loại phản ánh
+class Type(models.Model):
+    name_type = models.CharField(max_length=100, unique=True)
+    content = models.TextField(blank=True)  # 👈 thêm dòng này
+
+    def __str__(self):
+        return self.name_type
+
+class Document(models.Model):
+    name = models.CharField(max_length=255)
+    type = models.ForeignKey(Type, on_delete=models.SET_NULL, null=True)
+    file = models.FileField(upload_to='documents/')  # Lưu file vào thư mục /media/documents/
+
+    def __str__(self):
+        return self.name
