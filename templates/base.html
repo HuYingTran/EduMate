@@ -31,6 +31,16 @@
             </ul>
         </div>
     </div>
+    {% if user.is_authenticated %}
+    <p>Xin chào, {{ user.username }}</p>
+    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit">Đăng xuất</button>
+    </form>
+    {% else %}
+    <a href="{% url 'login' %}">Đăng nhập</a>
+    {% endif %}
+
 </nav>
 
 <div class="container mt-4">

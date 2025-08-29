@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ object_type }}</h1>
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">💾 Lưu</button>
+</form>
+
+<a href="{% url object_prefix|add:'_list' %}">⬅️ Quay lại danh sách {{ object_type }}</a>
+{% endblock %}

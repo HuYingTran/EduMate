@@ -1,117 +1,193 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth import login
-from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.models import User
-
-from .models import SV, GV
-from .forms import UserSVRegistrationForm, GVRegistrationForm, StudentLoginForm
-
-
-# ================== LIST ================== #
-@staff_member_required
-def user_list(request, user_type):
-    if user_type == "sv":
-        users = SV.objects.all()
-    else:
-        users = GV.objects.all()
-    return render(request, "user/user_list.html", {"users": users, "user_type": user_type.upper()})
+from django.contrib.auth.hashers import make_password
+from .models import SV, GV, BoMon
+from .forms import SVForm, GVForm
 
 
-# ================== DETAIL ================== #
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib import messages
-
-from .models import SV, GV
-
-@staff_member_required
-def user_detail_view(request, user_type, pk):
-    """
-    Hiển thị thông tin chi tiết SV hoặc GV
-    user_type: 'sv' hoặc 'gv'
-    """
-    user_type_lower = user_type.lower()
-    
-    if user_type_lower == "sv":
-        user_obj = get_object_or_404(SV, id=pk)
-    else:
-        user_obj = get_object_or_404(GV, id=pk)
-
-    # Cập nhật trạng thái nếu POST và admin
-    if request.method == "POST":
-        new_status = request.POST.get("status")
-        if new_status in dict(user_obj.STATUS_CHOICES).keys():
-            user_obj.status = new_status
-            user_obj.save()
-            messages.success(request, f"✅ Trạng thái của {user_obj.ho_ten} đã được cập nhật.")
-        return redirect("user_detail", user_type=user_type, pk=pk)
-
-    return render(request, "user/user_detail.html", {
-        "user_obj": user_obj,
-        "user_type": user_type_upper(user_type_lower),
-    })
-
-
-def user_type_upper(user_type_lower):
-    """Trả về chữ hoa cho hiển thị: 'SV' hoặc 'GV'"""
-    return "SV" if user_type_lower == "sv" else "GV"
-
-
-# ================== REGISTER ================== #
-def user_register(request, user_type):
-    if user_type == "sv":
-        form_class = UserSVRegistrationForm
-    else:
-        form_class = GVRegistrationForm
-
-    if request.method == "POST":
-        form = form_class(request.POST)
-        if form.is_valid():
-            user = form.save()
-            if user_type == "sv":
-                SV.objects.create(
-                    user=user,
-                    ho_ten=form.cleaned_data["ho_ten"],
-                    ngay_sinh=form.cleaned_data["ngay_sinh"],
-                    gioi_tinh=form.cleaned_data["gioi_tinh"],
-                    email=form.cleaned_data.get("email"),
-                )
-            else:
-                GV.objects.create(
-                    user=user,
-                    ho_ten=form.cleaned_data["ho_ten"],
-                    email=form.cleaned_data.get("email"),
-                )
-            login(request, user)
-            return redirect("home")
-    else:
-        form = form_class()
-    return render(request, "user/user_register.html", {"form": form, "user_type": user_type.upper()})
-
-
-# ================== STUDENT LOGIN ================== #
-def student_login(request):
-    if request.method == "POST":
-        form = StudentLoginForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-            return redirect("home")
-    else:
-        form = StudentLoginForm()
-    return render(request, "login.html", {"form": form})
-
-
-# ================== CSRF ================== #
+# ----- CSRF failure handler -----
 def csrf_failure(request, reason=""):
-    return render(request, "csrf_failure.html", {"reason": reason}, status=403)
+    return render(request, "csrf_failure.html", {"reason": reason})
 
 
-# ================== SV UPDATE STATUS ================== #
-@staff_member_required
-def sv_update_status(request, pk, status):
-    sv = get_object_or_404(SV, pk=pk)
-    sv.status = status
-    sv.save()
-    return redirect("sv_detail", pk=pk)
+# ----- Mixin chung để thêm context -----
+class ObjectTypeMixin:
+    object_type = None      # Tên hiển thị: "Sinh viên" / "Giảng viên"
+    object_prefix = None    # Prefix dùng để build URL: "sv" / "gv"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object_type"] = self.object_type
+        context["object_prefix"] = self.object_prefix
+        return context
+
+# ----- Base class kế thừa Mixin -----
+class BaseListView(ObjectTypeMixin, ListView):
+    template_name = "common/list.html"
+    context_object_name = "objects"
+    
+    # các trường filter mặc định là None, override ở subclass
+    filter_fields = []  
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        for field in self.filter_fields:
+            value = self.request.GET.get(field, "")
+            if value:
+                kwargs = {f"{field}__icontains": value}
+                queryset = queryset.filter(**kwargs)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # giữ giá trị tìm kiếm trong form
+        context["filters"] = {field: self.request.GET.get(field, "") for field in self.filter_fields}
+        return context    
+
+
+class BaseDetailView(ObjectTypeMixin, DetailView):
+    template_name = "common/detail.html"
+    context_object_name = "object"
+
+
+class BaseCreateView(ObjectTypeMixin, CreateView):
+    template_name = "common/form.html"
+    form_class = None
+    success_url = None
+
+
+class BaseUpdateView(ObjectTypeMixin, UpdateView):
+    template_name = "common/form.html"
+    form_class = None
+    success_url = None
+
+
+class BaseDeleteView(ObjectTypeMixin, DeleteView):
+    template_name = "common/confirm_delete.html"
+    success_url = None
+
+
+# ----- SINH VIÊN -----
+class SVListView(BaseListView):
+    model = SV
+    object_type = "Sinh viên"
+    object_prefix = "sv"
+    filter_fields = ["ho_ten", "lop", "khoa"]
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["filter_fields"] = self.filter_fields
+        return context
+
+class SVDetailView(BaseDetailView):
+    model = SV
+    object_type = "Sinh viên"
+    object_prefix = "sv"
+
+
+class SVCreateView(BaseCreateView):
+    model = SV
+    form_class = SVForm
+    object_type = "Sinh viên"
+    object_prefix = "sv"
+    success_url = reverse_lazy("sv_list")
+
+
+class SVUpdateView(BaseUpdateView):
+    model = SV
+    form_class = SVForm
+    object_type = "Sinh viên"
+    object_prefix = "sv"
+    success_url = reverse_lazy("sv_list")
+
+
+class SVDeleteView(BaseDeleteView):
+    model = SV
+    object_type = "Sinh viên"
+    object_prefix = "sv"
+    success_url = reverse_lazy("sv_list")
+
+
+# ----- GIẢNG VIÊN -----
+class GVListView(BaseListView):
+    model = GV
+    object_type = "Giảng viên"
+    object_prefix = "gv"
+    filter_fields = ["ho_ten", "bo_mon"]
+    def get_queryset(self):
+        qs = super().get_queryset()
+        ho_ten = self.request.GET.get("ho_ten")
+        bo_mon = self.request.GET.get("bo_mon")
+        if ho_ten:
+            qs = qs.filter(ho_ten__icontains=ho_ten)
+        if bo_mon:
+            qs = qs.filter(bo_mon_id=bo_mon)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["bo_mon_list"] = BoMon.objects.all()
+        context["filters"] = {
+            "ho_ten": self.request.GET.get("ho_ten", ""),
+            "bo_mon": self.request.GET.get("bo_mon", ""),
+        }
+        context["filter_fields"] = self.filter_fields  # Thêm dòng này
+        return context
+
+class GVDetailView(BaseDetailView):
+    model = GV
+    object_type = "Giảng viên"
+    object_prefix = "gv"
+
+
+class GVCreateView(BaseCreateView):
+    model = GV
+    form_class = GVForm
+    object_type = "Giảng viên"
+    object_prefix = "gv"
+    success_url = reverse_lazy("gv_list")
+
+
+class GVUpdateView(BaseUpdateView):
+    model = GV
+    form_class = GVForm
+    object_type = "Giảng viên"
+    object_prefix = "gv"
+    success_url = reverse_lazy("gv_list")
+
+
+class GVDeleteView(BaseDeleteView):
+    model = GV
+    object_type = "Giảng viên"
+    object_prefix = "gv"
+    success_url = reverse_lazy("gv_list")
+
+
+from django.shortcuts import render
+
+def csrf_failure(request, reason=""):
+    return render(request, "csrf_failure.html", {"reason": reason})
+
+
+from django.contrib.auth.views import LoginView, LogoutView
+from .forms import CustomLoginForm
+
+class UserLoginView(LoginView):
+    template_name = "user/login.html"
+    authentication_form = CustomLoginForm
+    redirect_authenticated_user = True
+
+    def get_success_url(self):
+        user = self.request.user
+        # Sinh viên
+        if hasattr(user, "sv"):
+            return "/user/sv/"
+        # Giảng viên
+        elif hasattr(user, "gv"):
+            return "/user/gv/"
+        # Mặc định
+        return "/"
+
+class UserLogoutView(LogoutView):
+    next_page = "/user/login/"

@@ -1,55 +1,66 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.hashers import make_password
+from .models import SV, GV
 
-class UserSVRegistrationForm(UserCreationForm):
-    ho_ten = forms.CharField(max_length=255)
-    ngay_sinh = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
-    gioi_tinh = forms.ChoiceField(choices=[('Nam', 'Nam'), ('Nữ', 'Nữ')])
-    noi_sinh = forms.CharField(max_length=255)
-    dan_toc = forms.CharField(max_length=50)
-    que_quan = forms.CharField(max_length=255)
-    email = forms.EmailField()
+# ----- Base form dùng chung -----
+class BaseUserLinkedForm(forms.ModelForm):
+    email = forms.EmailField(label="Email", required=True)
 
     class Meta:
-        model = User
-        fields = ("username", "password1", "password2", "ho_ten", "ngay_sinh", "gioi_tinh", "noi_sinh", "dan_toc", "que_quan", "email")
+        abstract = True  # Form cha, không dùng trực tiếp
+
+    def save(self, commit=True):
+        # Tạo User mới nếu chưa tồn tại
+        email = self.cleaned_data["email"]
+        user, created = User.objects.get_or_create(
+            username=email,
+            defaults={
+                "email": email,
+                "password": make_password("123456")  # mật khẩu mặc định
+            }
+        )
+        self.instance.user = user
+        return super().save(commit=commit)
 
 
+# ================== SINH VIÊN ================== #
+class SVForm(BaseUserLinkedForm):
+    class Meta:
+        model = SV
+        fields = [
+            "email", "ho_ten", "ngay_sinh", "gioi_tinh", "noi_sinh", "dan_toc", "que_quan",
+            "so_hieu_cong_an", "can_cuoc", "ngay_cap", "noi_cap",
+            "dia_chi_lien_lac", "dien_thoai", "lop", "khoa", "status"
+        ]
+
+
+# ================== GIẢNG VIÊN ================== #
+class GVForm(BaseUserLinkedForm):
+    class Meta:
+        model = GV
+        fields = [
+            "email", "ho_ten", "ngay_sinh", "gioi_tinh", "so_dien_thoai",
+            "can_cuoc", "ngay_cap", "noi_cap",
+            "bo_mon", "chuc_vu", "status"
+        ]
+
+
+from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 
-class StudentLoginForm(AuthenticationForm):
+class CustomLoginForm(AuthenticationForm):
     def confirm_login_allowed(self, user):
-        # Nếu user có SV -> check status
+        # Nếu là SV
         if hasattr(user, "sv") and user.sv.status != "A":
             raise ValidationError(
                 "Tài khoản Sinh viên chưa được kích hoạt. Vui lòng chờ Admin duyệt.",
                 code="inactive",
             )
-        # Nếu không phải SV thì dùng mặc định (admin, GV,...)
-        return super().confirm_login_allowed(user)
-
-
-from django import forms
-from django.contrib.auth.models import User
-from .models import GV
-
-class GVRegistrationForm(forms.ModelForm):
-    username = forms.CharField(max_length=150)
-    password = forms.CharField(widget=forms.PasswordInput)
-
-    class Meta:
-        model = GV
-        fields = ["ho_ten", "ngay_sinh", "gioi_tinh", "email", "so_dien_thoai", "bo_mon", "chuc_vu"]
-
-    def save(self, commit=True):
-        user = User.objects.create_user(
-            username=self.cleaned_data["username"],
-            password=self.cleaned_data["password"]
-        )
-        gv = super().save(commit=False)
-        gv.user = user
-        if commit:
-            gv.save()
-        return gv
+        # Nếu là GV
+        if hasattr(user, "gv") and user.gv.status != "A":
+            raise ValidationError(
+                "Tài khoản Giảng viên chưa được kích hoạt. Vui lòng chờ Admin duyệt.",
+                code="inactive",
+            )

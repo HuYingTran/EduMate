@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Xóa {{ object_type }}</h1>
+
+<p>Bạn có chắc chắn muốn xóa "{{ object }}" không?</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">🗑 Xóa</button>
+</form>
+
+<a href="{% url object_prefix|add:'_list' %}">⬅️ Quay lại danh sách</a>
+{% endblock %}

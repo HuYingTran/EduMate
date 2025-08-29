@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Danh sách {{ object_type }}</h1>
+
+<a href="{% url object_prefix|add:'_create' %}">➕ Thêm {{ object_type }}</a>
+
+<!-- Form tìm kiếm -->
+<form method="get" action="" style="margin-top: 10px; margin-bottom: 20px;">
+  {% for field in filter_fields %}
+      {% if field == 'bo_mon' %}
+          <select name="bo_mon">
+              <option value="">-- Bộ môn --</option>
+              {% for bm in bo_mon_list %}
+                  <option value="{{ bm.id }}" {% if filters.bo_mon|stringformat:"s" == bm.id|stringformat:"s" %}selected{% endif %}>
+                      {{ bm.ten }}
+                  </option>
+              {% endfor %}
+          </select>
+      {% else %}
+          {% with filters_value=filters.field %}
+              <input type="text" name="{{ field }}" placeholder="{{ field|capfirst }}" value="{{ filters_value|default:'' }}">
+          {% endwith %}
+      {% endif %}
+  {% endfor %}
+    <button type="submit">🔍 Tìm kiếm</button>
+</form>
+
+
+<ul>
+  {% for obj in objects %}
+    <li>
+      <a href="{% url object_prefix|add:'_detail' obj.pk %}">{{ obj }}</a>
+      | <a href="{% url object_prefix|add:'_update' obj.pk %}">✏️ Sửa</a>
+      | <a href="{% url object_prefix|add:'_delete' obj.pk %}">🗑 Xóa</a>
+    </li>
+  {% empty %}
+    <li>Chưa có {{ object_type }} nào.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

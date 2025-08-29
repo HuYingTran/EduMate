@@ -5,12 +5,10 @@
 {% block content %}
 <h2>Danh sách {{ user_type }}</h2>
 
-<!-- Nút thêm SV / GV -->
-{% if user_type == "SV" %}
-    <a href="{% url 'sv_register' %}" class="btn btn-primary mb-2">Thêm {{ user_type }}</a>
-{% else %}
-    <a href="{% url 'gv_register' %}" class="btn btn-primary mb-2">Thêm {{ user_type }}</a>
-{% endif %}
+<!-- Nút thêm -->
+<a href="{% url url_prefix|add:'_register' %}" class="btn btn-primary mb-2">
+    Thêm {{ user_type }}
+</a>
 
 <table class="table table-bordered">
     <thead>
@@ -29,16 +27,17 @@
             <td>{{ u.ho_ten }}</td>
             <td>{{ u.email }}</td>
             <td>{{ u.get_status_display }}</td>
-            <!-- Xem chi tiết -->
-            {% if user_type == "SV" %}
-                <td><a href="{% url 'sv_detail' u.id %}" class="btn btn-info btn-sm">Xem</a></td>
-            {% else %}
-                <td><a href="{% url 'gv_detail' u.id %}" class="btn btn-info btn-sm">Xem</a></td>
-            {% endif %}
+            <td>
+                <a href="{% url url_prefix|add:'_detail' u.id %}" class="btn btn-info btn-sm">Xem</a>
+                <a href="{% url url_prefix|add:'_edit' u.id %}" class="btn btn-warning btn-sm">Sửa</a>
+                <a href="{% url url_prefix|add:'_delete' u.id %}" class="btn btn-danger btn-sm">Xóa</a>
+            </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="5">Không có {{ user_type }} nào.</td>
+            <td colspan="5" class="text-center text-muted">
+                Không có {{ user_type }} nào.
+            </td>
         </tr>
         {% endfor %}
     </tbody>

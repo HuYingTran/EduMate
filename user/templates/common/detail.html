@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Chi tiết {{ object_type }}</h1>
+
+<ul>
+  {% for field, value in object.get_fields.items %}
+    <li><b>{{ field }}:</b> {{ value }}</li>
+  {% endfor %}
+</ul>
+
+<a href="{% url object_prefix|add:'_update' object.pk %}">✏️ Sửa</a> |
+<a href="{% url object_prefix|add:'_delete' object.pk %}">🗑 Xóa</a> |
+<a href="{% url object_prefix|add:'_list' %}">⬅️ Quay lại danh sách</a>
+{% endblock %}
