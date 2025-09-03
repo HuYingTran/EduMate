@@ -1,8 +1,0 @@
-<h2>Danh sách phản ánh (GV)</h2>
-<ul>
-{% for pa in ds %}
-  <li>{{ pa.sv.username }}: {{ pa.noi_dung }}
-      <a href="{% url 'gv_phan_hoi' pa.id %}">Phản hồi</a>
-  </li>
-{% endfor %}
-</ul>

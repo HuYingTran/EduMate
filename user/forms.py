@@ -64,3 +64,11 @@ class CustomLoginForm(AuthenticationForm):
                 "Tài khoản Giảng viên chưa được kích hoạt. Vui lòng chờ Admin duyệt.",
                 code="inactive",
             )
+
+from django import forms
+from .models import BoMon
+
+class BoMonForm(forms.ModelForm):
+    class Meta:
+        model = BoMon
+        fields = ["ten"]

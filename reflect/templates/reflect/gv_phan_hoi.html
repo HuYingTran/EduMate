@@ -1,7 +1,0 @@
-<h2>Phản hồi phản ánh</h2>
-<p>{{ pa.noi_dung }}</p>
-<form method="post">
-  {% csrf_token %}
-  <textarea name="phan_hoi" rows="5" cols="40">{{ pa.phan_hoi }}</textarea><br>
-  <button type="submit">Gửi phản hồi</button>
-</form>

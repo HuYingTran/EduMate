@@ -191,3 +191,37 @@ class UserLoginView(LoginView):
 
 class UserLogoutView(LogoutView):
     next_page = "/user/login/"
+
+
+from django.shortcuts import render, redirect
+from user.models import BoMon
+from reflect.models import Type
+from user.forms import BoMonForm
+from reflect.forms import TypeForm  # tạo TypeForm tương tự BoMonForm
+
+def type_view(request):
+    # Form BoMon
+    if request.method == "POST" and "add_bomon" in request.POST:
+        bomon_form = BoMonForm(request.POST, prefix="bomon")
+        if bomon_form.is_valid():
+            bomon_form.save()
+            return redirect("add_type")
+    else:
+        bomon_form = BoMonForm(prefix="bomon")
+
+    # Form Type
+    if request.method == "POST" and "add_type" in request.POST:
+        type_form = TypeForm(request.POST, prefix="type")
+        if type_form.is_valid():
+            type_form.save()
+            return redirect("add_type")
+    else:
+        type_form = TypeForm(prefix="type")
+
+    context = {
+        "bomon_form": bomon_form,
+        "type_form": type_form,
+        "bomon_list": BoMon.objects.all(),
+        "type_list": Type.objects.all(),
+    }
+    return render(request, "add_type.html", context)

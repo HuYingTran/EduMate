@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <a href="{% url 'reflect_create' %}" class="btn btn-primary mb-3">➕ Tạo phản ánh mới</a>
+
+  <h1>Danh sách phản ánh</h1>
+  <ul class="list-group">
+    {% for r in reflects %}
+      <li class="list-group-item">
+        <a href="{% url 'reflect_detail' r.id %}">{{ r.title }}</a>
+        <small class="text-muted">
+          ({{ r.student.get_full_name }} - {{ r.created_at|date:"d/m/Y H:i" }})
+        </small>
+      </li>
+    {% empty %}
+      <li class="list-group-item">Chưa có phản ánh nào.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

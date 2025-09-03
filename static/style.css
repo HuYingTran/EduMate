@@ -1,0 +1,77 @@
+/* style.css - theme xanh nhạt */
+
+/* Body & fonts */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #e6f0ff; /* xanh nhạt */
+    color: #1a1a1a;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #3399ff !important; /* xanh dương */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+    color: #fff !important;
+}
+
+.navbar-nav .nav-link {
+    color: #f0f8ff !important; /* trắng nhạt */
+    transition: color 0.3s;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #ffe680 !important; /* vàng nhạt nổi bật */
+}
+
+.navbar-nav .dropdown-menu {
+    background-color: #66b3ff; /* xanh sáng hơn */
+}
+
+.navbar-nav .dropdown-item {
+    color: #fff;
+    transition: background-color 0.3s;
+}
+
+.navbar-nav .dropdown-item:hover {
+    background-color: #3399ff;
+}
+
+/* Auth buttons */
+.btn-outline-light {
+    border-width: 2px;
+    color: #fff;
+}
+
+.btn-outline-light:hover {
+    background-color: #ffe680;
+    border-color: #ffe680;
+    color: #000;
+}
+
+/* Main content */
+main.container {
+    padding-top: 20px;
+    padding-bottom: 40px;
+}
+
+/* Cards */
+.card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: #f0f8ff;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px 0;
+    background-color: #3399ff;
+    color: #fff;
+    margin-top: 40px;
+}

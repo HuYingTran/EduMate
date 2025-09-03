@@ -18,6 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render
+from user.views import type_view  # view chung có thể để trong app user
 
 def home(request):
     return render(request, "home.html")
@@ -27,4 +28,5 @@ urlpatterns = [
     path("reflect/", include("reflect.urls")),
     path("user/", include("user.urls")),
     path("admin/", admin.site.urls),
+    path("add_type/", type_view, name="add_type"),
 ]

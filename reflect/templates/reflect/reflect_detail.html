@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<h1>Chi tiết phản ánh</h1>
+
+<!-- Thông tin phản ánh -->
+<h2>{{ reflect.title }}</h2>
+<p><b>Người tạo:</b> {{ reflect.student.get_full_name }}</p>
+<p><b>Ngày tạo:</b> {{ reflect.created_at|date:"d M Y, H:i" }}</p>
+
+<p><b>Lĩnh vực:</b>
+{% if reflect.type %}
+    {{ reflect.type.name_type }}
+{% else %}
+    Chưa chọn
+{% endif %}
+</p>
+
+<p><b>Bộ môn:</b>
+{% if reflect.bo_mon %}
+    {{ reflect.bo_mon.ten }}
+{% else %}
+    Chưa chọn
+{% endif %}
+</p>
+
+<p><b>Nội dung:</b> {{ reflect.content }}</p>
+
+{% if reflect.attachment %}
+<p><b>File đính kèm:</b> <a href="{{ reflect.attachment.url }}">📎 {{ reflect.attachment.name }}</a></p>
+{% endif %}
+
+<hr>
+
+<!-- Phản hồi -->
+<h3>Phản hồi</h3>
+<ul>
+{% for resp in responses %}
+    <li style="margin-bottom: 20px;">
+        <p><b>Người phản hồi:</b> {{ resp.teacher.get_full_name }}</p>
+        <p><b>Ngày phản hồi:</b> {{ resp.created_at|date:"d M Y, H:i" }}</p>
+        <p><b>Nội dung:</b> {{ resp.content }}</p>
+
+        {% if resp.attachment %}
+            <p><b>File đính kèm:</b> <a href="{{ resp.attachment.url }}">📎 {{ resp.attachment.name }}</a></p>
+        {% endif %}
+
+        {% if user == reflect.student %}
+        <form method="post" action="{% url 'rate_response' resp.id %}">
+            {% csrf_token %}
+            <label><b>Sao đánh giá:</b> </label>
+            <input type="number" name="rating" min="1" max="5" value="{{ resp.rating }}">
+            <button type="submit">Đánh giá</button>
+        </form>
+        {% else %}
+            <p><b>Sao đánh giá:</b> {{ resp.rating }}</p>
+        {% endif %}
+    </li>
+{% empty %}
+    <li>Chưa có phản hồi nào.</li>
+{% endfor %}
+</ul>
+
+<hr>
+
+<!-- Form tạo phản hồi mới (chỉ dành cho giáo viên) -->
+<h3>Gửi phản hồi mới</h3>
+<form method="post" enctype="multipart/form-data" action="{% url 'create_response' reflect.id %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Tạo phản hồi</button>
+</form>
+
+{% endblock %}

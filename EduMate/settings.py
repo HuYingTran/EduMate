@@ -125,10 +125,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # default static files settings for PythonAnywhere.
 # see https://help.pythonanywhere.com/pages/DjangoStaticFiles for more info
-MEDIA_ROOT = '/home/pythonIoT/EduMate/media'
+MEDIA_ROOT = '/home/pi/Code/EduMate/media'
 MEDIA_URL = '/media/'
-STATIC_ROOT = '/home/pythonIoT/EduMate/static'
 STATIC_URL = '/static/'
+
+# Thêm STATICFILES_DIRS cho development
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # EduMate/static
+]
+
+# Chỉ dùng STATIC_ROOT khi collectstatic
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 CSRF_FAILURE_VIEW = "user.views.csrf_failure"

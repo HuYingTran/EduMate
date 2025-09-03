@@ -7,9 +7,9 @@
 <h3 class="mb-4">📚 Tài liệu quy định đào tạo</h3>
 
 <!-- Nút upload chỉ hiện cho GV -->
-{% if user.is_authenticated and user.gv|default:"" %}
+
   <a href="{% url 'upload_document' %}" class="btn btn-primary mb-3">📤 Upload tài liệu</a>
-{% endif %}
+
 
 <!-- Form lọc và tìm kiếm -->
 <form method="get" class="mb-3 row">

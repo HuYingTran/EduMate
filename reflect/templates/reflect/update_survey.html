@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success mt-2">Lưu</button>
+        <a href="{% url 'surveys_view' %}" class="btn btn-secondary mt-2 ms-2">Quay lại</a>
+    </form>
+
+    <!-- Nút mở Google Form -->
+    <div class="mt-4">
+        <a href="https://docs.google.com/forms/u/0/create?usp=forms_home&ths=true" target="_blank" class="btn btn-primary">
+            ➕ Tạo khảo sát mới trên Google Forms
+        </a>
+    </div>
+</div>
+{% endblock %}

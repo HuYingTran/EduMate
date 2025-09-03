@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Settings Trung Tâm</h1>
+
+<h2>Bộ môn (User App)</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ bomon_form.as_p }}
+    <button type="submit" name="add_bomon">Thêm Bộ môn</button>
+</form>
+
+<ul>
+{% for bm in bomon_list %}
+    <li>{{ bm.ten }}</li>
+{% empty %}
+    <li>Chưa có Bộ môn nào.</li>
+{% endfor %}
+</ul>
+
+<hr>
+
+<h2>Type (Reflect App)</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ type_form.as_p }}
+    <button type="submit" name="add_type">Thêm Type</button>
+</form>
+
+<ul>
+{% for t in type_list %}
+    <li>{{ t.name_type }}</li>
+{% empty %}
+    <li>Chưa có Type nào.</li>
+{% endfor %}
+</ul>
+{% endblock %}

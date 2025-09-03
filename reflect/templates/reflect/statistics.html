@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">📊 Thống kê phản ánh</h2>
+
+  <!-- Bộ lọc chọn tháng -->
+  <form method="get" class="mb-4">
+    <label for="month" class="form-label">Chọn tháng:</label>
+    <input type="month" id="month" name="month" value="{{ current_month }}" class="form-control" style="max-width: 250px; display:inline-block;">
+    <button type="submit" class="btn btn-primary ms-2">Lọc</button>
+  </form>
+
+  <!-- Biểu đồ số lượng phản ánh theo Type -->
+  <div class="mb-5">
+    <h4>Số phản ánh theo loại ({{ current_month }})</h4>
+    <canvas id="reflectByTypeChart" height="120"></canvas>
+  </div>
+
+  <!-- Biểu đồ rating trung bình theo Type -->
+  <div class="mb-5">
+    <h4>Rating trung bình theo loại ({{ current_month }})</h4>
+    <canvas id="ratingByTypeChart" height="120"></canvas>
+  </div>
+
+  <!-- Biểu đồ xu hướng phản ánh theo tháng -->
+  <div class="mb-5">
+    <h4>Xu hướng phản ánh theo tháng</h4>
+    <canvas id="reflectsByMonthChart" height="120"></canvas>
+  </div>
+
+  <!-- Biểu đồ quạt tỷ lệ phản ánh trong tháng -->
+  <div class="mb-5">
+    <h4>Tỷ lệ phản ánh theo loại ({{ current_month }})</h4>
+    <canvas id="reflectPieChart" height="120"></canvas>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Inject dữ liệu từ Django vào JS
+  const reflectByType = {{ reflect_by_type|safe }};
+  const ratingByType = {{ rating_by_type|safe }};
+  const reflectsByMonth = {{ reflects_by_month|safe }};
+  const reflectsPieMonth = {{ reflects_pie_month|safe }};
+
+  // Biểu đồ số phản ánh theo Type
+  new Chart(document.getElementById('reflectByTypeChart'), {
+    type: 'bar',
+    data: {
+      labels: reflectByType.map(r => r.name_type),
+      datasets: [{
+        label: 'Số phản ánh',
+        data: reflectByType.map(r => r.total_reflects),
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+      }]
+    }
+  });
+
+  // Biểu đồ rating trung bình theo Type
+  new Chart(document.getElementById('ratingByTypeChart'), {
+    type: 'bar',
+    data: {
+      labels: ratingByType.map(r => r.name_type),
+      datasets: [{
+        label: 'Rating trung bình',
+        data: ratingByType.map(r => r.avg_rating || 0),
+        backgroundColor: 'rgba(255, 206, 86, 0.6)',
+      }]
+    }
+  });
+
+  // Biểu đồ xu hướng phản ánh theo tháng
+  new Chart(document.getElementById('reflectsByMonthChart'), {
+    type: 'line',
+    data: {
+      labels: reflectsByMonth.map(r => r.month),
+      datasets: [{
+        label: 'Số phản ánh',
+        data: reflectsByMonth.map(r => r.total),
+        borderColor: 'rgba(75, 192, 192, 1)',
+        fill: false,
+        tension: 0.1
+      }]
+    }
+  });
+
+  // Biểu đồ quạt tỷ lệ phản ánh trong tháng
+  new Chart(document.getElementById('reflectPieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: reflectsPieMonth.map(r => r.name_type),
+      datasets: [{
+        label: 'Số phản ánh',
+        data: reflectsPieMonth.map(r => r.total_in_month),
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.6)',
+          'rgba(54, 162, 235, 0.6)',
+          'rgba(255, 206, 86, 0.6)',
+          'rgba(75, 192, 192, 0.6)',
+          'rgba(153, 102, 255, 0.6)',
+          'rgba(255, 159, 64, 0.6)'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'right' },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let total = context.dataset.data.reduce((a,b) => a+b, 0);
+              let value = context.raw;
+              let percentage = total ? (value/total*100).toFixed(1) : 0;
+              return `${context.label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}
