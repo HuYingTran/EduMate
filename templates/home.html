@@ -26,4 +26,121 @@
 {% else %}
   <p class="text-muted mt-3">Hiện chưa có khảo sát nào đang mở.</p>
 {% endif %}
+
+<hr>
+
+<h2>💬 Trò chuyện với hệ thống</h2>
+<div id="chatMessages" class="border p-3 mb-3" style="height: 250px; overflow-y: auto;">
+  <!-- Lịch sử chat sẽ được tải vào đây -->
+</div>
+
+<div class="input-group">
+  <input type="text" id="chatInput" class="form-control" placeholder="Nhập tin nhắn...">
+  <button id="chatSend" class="btn btn-primary">Gửi</button>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Lịch sử chat từ Django template (CÁCH ĐÚNG)
+const chatHistory = [
+  {% for msg in chat_history %}
+  {
+    question: "{{ msg.question|escapejs }}",
+    answer: {% if msg.answer %}"{{ msg.answer|escapejs }}"{% else %}null{% endif %}
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+];
+
+function loadChatHistory() {
+  const chatBox = document.getElementById("chatMessages");
+  chatBox.innerHTML = "";
+
+  if (chatHistory.length === 0) {
+    chatBox.innerHTML = '<div class="text-center text-muted"><i>Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!</i></div>';
+    return;
+  }
+
+  chatHistory.forEach(msg => {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'mb-2';
+    messageDiv.innerHTML = `
+      <div><b>Bạn:</b> ${msg.question}</div>
+      ${msg.answer 
+        ? `<div class="ms-3 text-primary"><b>Bot:</b> ${msg.answer}</div>` 
+        : `<div class="ms-3 text-muted"><i>(Chưa có câu trả lời)</i></div>`
+      }
+      <hr class="my-2">
+    `;
+    chatBox.appendChild(messageDiv);
+  });
+
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// Gửi tin nhắn
+document.getElementById("chatSend").addEventListener("click", function() {
+  sendMessage();
+});
+
+// Cho phép gửi bằng Enter
+document.getElementById("chatInput").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") {
+    sendMessage();
+  }
+});
+
+function sendMessage() {
+  const input = document.getElementById("chatInput");
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const chatBox = document.getElementById("chatMessages");
+  
+  // Thêm tin nhắn của user ngay lập tức
+  const userMessageDiv = document.createElement('div');
+  userMessageDiv.className = 'mb-2';
+  userMessageDiv.innerHTML = `
+    <div><b>Bạn:</b> ${msg}</div>
+    <div class="ms-3 text-muted"><i>Đang xử lý...</i></div>
+    <hr class="my-2">
+  `;
+  chatBox.appendChild(userMessageDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  
+  // Xóa input
+  input.value = "";
+
+  // Gửi request
+  fetch("{% url 'chat_send' %}", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    body: JSON.stringify({ message: msg })
+  })
+  .then(res => res.json())
+  .then(data => {
+    // Cập nhật tin nhắn cuối cùng với phản hồi từ bot
+    const lastMessage = chatBox.lastElementChild;
+    const botReply = lastMessage.querySelector('.text-muted');
+    botReply.className = 'ms-3 text-primary';
+    botReply.innerHTML = `<b>Bot:</b> ${data.reply}`;
+    
+    chatBox.scrollTop = chatBox.scrollHeight;
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    const lastMessage = chatBox.lastElementChild;
+    const botReply = lastMessage.querySelector('.text-muted');
+    botReply.innerHTML = '<i>Lỗi khi gửi tin nhắn. Vui lòng thử lại.</i>';
+  });
+}
+
+// Tải lịch sử chat khi trang được load
+document.addEventListener('DOMContentLoaded', function() {
+  loadChatHistory(); // SỬA: gọi đúng tên hàm
+});
+</script>
 {% endblock %}

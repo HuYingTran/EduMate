@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý câu hỏi{% endblock %}
+
+{% block content %}
+<h2>❓ Câu hỏi chưa trả lời</h2>
+{% if unanswered %}
+  <ul class="list-group mt-3">
+    {% for q in unanswered %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <b>{{ q.user.username }}</b>: {{ q.question }}
+          <small class="text-muted">({{ q.created_at|date:"d/m/Y H:i" }})</small>
+        </div>
+        <a href="{% url 'answer_question' q.id %}" class="btn btn-sm btn-success">Trả lời</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="text-muted">Không có câu hỏi nào chờ trả lời.</p>
+{% endif %}
+
+<hr>
+
+<h2>📚 Ngân hàng câu hỏi – trả lời</h2>
+{% if answered %}
+  <ul class="list-group mt-3">
+    {% for q in answered %}
+      <li class="list-group-item">
+        <div><b>{{ q.user.username }}</b> hỏi: {{ q.question }}</div>
+        <div class="mt-1"><b>👉 Trả lời:</b> {{ q.answer }}</div>
+        <small class="text-muted">{{ q.created_at|date:"d/m/Y H:i" }}</small>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="text-muted">Chưa có câu hỏi nào được trả lời.</p>
+{% endif %}
+{% endblock %}

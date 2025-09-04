@@ -401,7 +401,13 @@ def delete_survey(request, survey_id):
 
 from django.shortcuts import render
 from .models import Survey
+from chat.models import ChatMessage
 
+@login_required
 def home(request):
-    surveys = Survey.objects.filter(status='active').order_by('end_date')
-    return render(request, "home.html", {"surveys": surveys})
+    surveys = Survey.objects.filter(status="active")
+    chat_history = ChatMessage.objects.filter(user=request.user).order_by("created_at")  # ← Đây
+    return render(request, "home.html", {
+        "surveys": surveys,
+        "chat_history": chat_history,  # ← Dữ liệu này được truyền vào template
+    })

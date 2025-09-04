@@ -28,4 +28,5 @@ urlpatterns = [
     path("user/", include("user.urls")),
     path("admin/", admin.site.urls),
     path("add_type/", type_view, name="add_type"),
+    path("chat/", include("chat.urls"))
 ]
