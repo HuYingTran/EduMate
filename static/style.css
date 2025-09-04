@@ -75,3 +75,12 @@ footer {
     color: #fff;
     margin-top: 40px;
 }
+
+
+.chart-container {
+    max-width: 600px;   /* chiều rộng tối đa */
+    margin: auto;       /* căn giữa */
+}
+canvas {
+    max-height: 300px;  /* chiều cao tối đa */
+}

@@ -4,19 +4,228 @@
 {% block content %}
 <div class="container mt-4">
   <a href="{% url 'reflect_create' %}" class="btn btn-primary mb-3">➕ Tạo phản ánh mới</a>
-
+  
   <h1>Danh sách phản ánh</h1>
-  <ul class="list-group">
-    {% for r in reflects %}
-      <li class="list-group-item">
-        <a href="{% url 'reflect_detail' r.id %}">{{ r.title }}</a>
-        <small class="text-muted">
-          ({{ r.student.get_full_name }} - {{ r.created_at|date:"d/m/Y H:i" }})
-        </small>
-      </li>
-    {% empty %}
-      <li class="list-group-item">Chưa có phản ánh nào.</li>
-    {% endfor %}
-  </ul>
+  
+  <!-- Bộ lọc -->
+  <div class="card mb-4">
+    <div id="f" class="colla">
+      <div class="card-body">
+        <form method="get" class="row g-3">
+          <!-- Tìm kiếm theo tiêu đề -->
+          <div class="col-md-4">
+            <label for="search" class="form-label">Tìm kiếm</label>
+            <input type="text" class="form-control" id="search" name="search" 
+                   value="{{ request.GET.search }}" placeholder="Tìm theo tiêu đề...">
+          </div>
+          
+          <!-- Lọc theo trạng thái -->
+          <div class="col-md-3">
+            <label for="status" class="form-label">Trạng thái</label>
+            <select class="form-select" id="status" name="status">
+              <option value="">Tất cả trạng thái</option>
+              <option value="create" {% if request.GET.status == 'create' %}selected{% endif %}>Đã tạo</option>
+              <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Đang xử lý</option>
+              <option value="done" {% if request.GET.status == 'done' %}selected{% endif %}>Hoàn thành</option>
+              <option value="cancel" {% if request.GET.status == 'cancel' %}selected{% endif %}>Đã hủy</option>
+            </select>
+          </div>
+          
+          <!-- Lọc theo ngày tạo -->
+          <div class="col-md-2">
+            <label for="date_from" class="form-label">Từ ngày</label>
+            <input type="date" class="form-control" id="date_from" name="date_from" 
+                   value="{{ request.GET.date_from }}">
+          </div>
+          
+          <div class="col-md-2">
+            <label for="date_to" class="form-label">Đến ngày</label>
+            <input type="date" class="form-control" id="date_to" name="date_to" 
+                   value="{{ request.GET.date_to }}">
+          </div>
+          
+          <!-- Nút lọc và xóa bộ lọc -->
+          <div class="col-md-1 d-flex align-items-end">
+            <div class="btn-group-vertical w-100">
+              <button type="submit" class="btn btn-primary btn-sm">Lọc</button>
+              <a href="{% url 'reflect_list' %}" class="btn btn-outline-secondary btn-sm">Xóa</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hiển thị thông tin bộ lọc hiện tại -->
+  {% if request.GET.search or request.GET.status or request.GET.date_from or request.GET.date_to %}
+    <div class="alert alert-info">
+      <strong>Bộ lọc hiện tại:</strong>
+      {% if request.GET.search %}
+        Tìm kiếm: "{{ request.GET.search }}" |
+      {% endif %}
+      {% if request.GET.status %}
+        Trạng thái: {{ request.GET.status|title }} |
+      {% endif %}
+      {% if request.GET.date_from %}
+        Từ: {{ request.GET.date_from }} |
+      {% endif %}
+      {% if request.GET.date_to %}
+        Đến: {{ request.GET.date_to }}
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Thống kê nhanh -->
+  <div class="row mb-3">
+    <div class="col-md-12">
+      <div class="d-flex flex-wrap gap-2">
+        <span class="badge bg-primary">Tổng: {{ reflects.count }} phản ánh</span>
+        {% if status_counts %}
+          {% for status, count in status_counts.items %}
+            <span class="badge 
+              {% if status == 'create' %} bg-warning text-dark
+              {% elif status == 'active' %} bg-info
+              {% elif status == 'done' %} bg-success
+              {% elif status == 'cancel' %} bg-danger
+              {% else %} bg-secondary
+              {% endif %}
+            ">
+              {{ status|title }}: {{ count }}
+            </span>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Danh sách phản ánh -->
+  <div class="row">
+    <div class="col-md-12">
+      {% if reflects %}
+        <ul class="list-group">
+          {% for r in reflects %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between">
+                  <h6 class="mb-1">
+                    <a href="{% url 'reflect_detail' r.id %}" class="text-decoration-none">
+                      {{ r.title }}
+                    </a>
+                  </h6>
+                  <!-- Trạng thái phản ánh -->
+                  <span class="badge 
+                    {% if r.status == 'create' %} bg-warning text-dark
+                    {% elif r.status == 'active' %} bg-info
+                    {% elif r.status == 'done' %} bg-success
+                    {% elif r.status == 'cancel' %} bg-danger
+                    {% else %} bg-secondary
+                    {% endif %}
+                  ">
+                    {{ r.get_status_display }}
+                  </span>
+                </div>
+                <p class="mb-1">
+                  <small class="text-muted">
+                    👤 {{ r.display_student }} | 
+                    📅 {{ r.created_at|date:"d/m/Y H:i" }}
+                    {% if r.updated_at != r.created_at %}
+                      | ✏️ Cập nhật: {{ r.updated_at|date:"d/m/Y H:i" }}
+                    {% endif %}
+                  </small>
+                </p>
+                {% if r.content %}
+                  <small class="text-muted">
+                    {{ r.content|truncatewords:15 }}
+                  </small>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+
+        <!-- Phân trang -->
+        {% if is_paginated %}
+          <nav aria-label="Phân trang phản ánh" class="mt-4">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ page_obj.previous_page_number }}">Trước</a>
+                </li>
+              {% endif %}
+
+              {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                  </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ num }}">{{ num }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if page_obj.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.date_from %}date_from={{ request.GET.date_from }}&{% endif %}{% if request.GET.date_to %}date_to={{ request.GET.date_to }}&{% endif %}page={{ page_obj.next_page_number }}">Sau</a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+        {% endif %}
+
+      {% else %}
+        <div class="alert alert-info text-center">
+          <h4>Không có phản ánh nào</h4>
+          <p class="mb-0">
+            {% if request.GET.search or request.GET.status or request.GET.date_from or request.GET.date_to %}
+              Không tìm thấy phản ánh nào phù hợp với bộ lọc hiện tại.
+            {% else %}
+              Chưa có phản ánh nào được tạo.
+            {% endif %}
+          </p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tự động mở bộ lọc nếu có tham số lọc
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasFilters = urlParams.has('search') || urlParams.has('status') || 
+                      urlParams.has('date_from') || urlParams.has('date_to') ||
+                      urlParams.has('student');
+    
+    if (hasFilters) {
+        const filterCollapse = document.getElementById('filterCollapse');
+        if (filterCollapse && typeof bootstrap !== 'undefined') {
+            const bsCollapse = new bootstrap.Collapse(filterCollapse, {show: true});
+        }
+    }
+
+    // Auto-submit form khi thay đổi select (optional)
+    const statusSelect = document.getElementById('status');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function() {
+            // Uncomment below line to auto-submit when status changes
+            // this.closest('form').submit();
+        });
+    }
+
+    // Clear individual filter tags (nếu muốn thêm X button cho từng filter)
+    document.querySelectorAll('.filter-tag-close').forEach(function(closeBtn) {
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const filterName = this.dataset.filter;
+            const url = new URL(window.location);
+            url.searchParams.delete(filterName);
+            window.location.href = url.toString();
+        });
+    });
+});
+</script>
+
 {% endblock %}

@@ -2,20 +2,6 @@ from django.shortcuts import render, redirect
 from .models import Reflect, Document, Type
 from .forms import ReflectForm, DocumentForm
 
-def gui_phan_anh(request):
-    if request.method == "POST":
-        form = ReflectForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect("danh_sach")
-    else:
-        form = ReflectForm()
-    return render(request, "reflect/gui.html", {"form": form})
-
-def danh_sach(request):
-    phan_anh_list = Reflect.objects.all()
-    return render(request, "reflect/danh_sach.html", {"phan_anh_list": phan_anh_list})
-
 
 # -----------------------------
 # Tài liệu đào tạo
@@ -75,50 +61,161 @@ class ReflectCreateView(CreateView):
 # Sinh viên tạo phản ánh
 @login_required
 def create_reflect(request):
+    if not hasattr(request.user, "sv"):
+        return HttpResponseForbidden("Chỉ sinh viên mới được gửi phản ánh.")
+
     if request.method == "POST":
         form = ReflectForm(request.POST, request.FILES)
         if form.is_valid():
             reflect = form.save(commit=False)
             reflect.student = request.user
+            reflect.status = "create"  # đảm bảo
             reflect.save()
-            return redirect("reflect_list")  # hoặc trang chi tiết phản ánh
+            messages.success(request, "Phản ánh của bạn đã được gửi thành công.")
+            return redirect("reflect_detail", pk=reflect.pk)
     else:
         form = ReflectForm()
+
     return render(request, "reflect/reflect_form.html", {"form": form})
 
 
-# Giáo viên phản hồi phản ánh
-@login_required
-def add_response(request, reflect_id):
-    reflect = get_object_or_404(Reflect, id=reflect_id)
-    if request.method == "POST":
-        form = ReflectResponseForm(request.POST, request.FILES)
-        if form.is_valid():
-            response = form.save(commit=False)
-            response.reflect = reflect
-            response.teacher = request.user
-            response.save()
-            return redirect("reflect_detail", pk=reflect.id)
-    else:
-        form = ReflectResponseForm()
-    return render(request, "reflect/response_form.html", {"form": form, "reflect": reflect})
 
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import ListView, DetailView
+from django.db.models import Q, Count
+from datetime import datetime
+from .models import Reflect, ReflectResponse
+from .forms import ReflectResponseForm
 
-from django.views.generic import ListView
-from .models import Reflect
-
-class ReflectListView(ListView):
+class ReflectListView(LoginRequiredMixin, ListView):
     model = Reflect
     template_name = "reflect/reflect_list.html"
     context_object_name = "reflects"
-    ordering = ["-created_at"]  # mới nhất lên đầu
+    paginate_by = 10  # Thêm phân trang
+    ordering = ["-created_at"]
 
-from django.views.generic import DetailView
-from .models import Reflect, ReflectResponse
-
-from django.views.generic import DetailView
-from .models import Reflect, ReflectResponse
-from .forms import ReflectResponseForm
+    def get_queryset(self):
+        user = self.request.user
+        
+        # Xác định queryset cơ bản theo quyền
+        if user.is_staff or user.is_superuser or getattr(user, "is_teacher", False):
+            queryset = Reflect.objects.all()
+        else:
+            queryset = Reflect.objects.filter(student=user)
+        
+        # Áp dụng các bộ lọc
+        queryset = self.apply_filters(queryset)
+        
+        return queryset.order_by("-created_at")
+    
+    def apply_filters(self, queryset):
+        """Áp dụng các bộ lọc từ request parameters"""
+        
+        # Bộ lọc tìm kiếm
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) |
+                Q(content__icontains=search_query) |
+                Q(display_student__icontains=search_query)
+            )
+        
+        # Bộ lọc trạng thái
+        status_filter = self.request.GET.get('status', '').strip()
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Bộ lọc theo danh mục (nếu có field category)
+        category_filter = self.request.GET.get('category', '').strip()
+        if category_filter and hasattr(Reflect, 'category'):
+            queryset = queryset.filter(category=category_filter)
+        
+        # Bộ lọc theo mức độ ưu tiên (nếu có field priority)
+        priority_filter = self.request.GET.get('priority', '').strip()
+        if priority_filter and hasattr(Reflect, 'priority'):
+            queryset = queryset.filter(priority=priority_filter)
+        
+        # Bộ lọc ngày tạo
+        date_from = self.request.GET.get('date_from', '').strip()
+        date_to = self.request.GET.get('date_to', '').strip()
+        
+        if date_from:
+            try:
+                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+                queryset = queryset.filter(created_at__date__gte=date_from_obj)
+            except ValueError:
+                pass  # Bỏ qua nếu format ngày không hợp lệ
+        
+        if date_to:
+            try:
+                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+                queryset = queryset.filter(created_at__date__lte=date_to_obj)
+            except ValueError:
+                pass  # Bỏ qua nếu format ngày không hợp lệ
+        
+        # Bộ lọc theo sinh viên (chỉ cho giáo viên/admin)
+        user = self.request.user
+        if (user.is_staff or user.is_superuser or getattr(user, "is_teacher", False)):
+            student_filter = self.request.GET.get('student', '').strip()
+            if student_filter:
+                queryset = queryset.filter(
+                    Q(student__username__icontains=student_filter) |
+                    Q(student__first_name__icontains=student_filter) |
+                    Q(student__last_name__icontains=student_filter) |
+                    Q(display_student__icontains=student_filter)
+                )
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Lấy queryset để tính thống kê
+        full_queryset = self.get_queryset()
+        
+        # Thống kê trạng thái
+        status_counts = full_queryset.values('status').annotate(
+            count=Count('status')
+        ).order_by('status')
+        context['status_counts'] = {item['status']: item['count'] for item in status_counts}
+        
+        # Thống kê tổng
+        context['total_count'] = full_queryset.count()
+        
+        # Thêm các options cho dropdown filters
+        context['status_choices'] = Reflect._meta.get_field('status').choices
+        
+        # Thêm thông tin về quyền xem
+        user = self.request.user
+        context['can_view_all'] = (
+            user.is_staff or 
+            user.is_superuser or 
+            getattr(user, "is_teacher", False)
+        )
+        
+        # Thêm danh sách sinh viên cho bộ lọc (chỉ cho giáo viên/admin)
+        if context['can_view_all']:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            # Lấy danh sách sinh viên có phản ánh
+            students_with_reflects = Reflect.objects.values_list(
+                'student', flat=True
+            ).distinct()
+            
+            context['students_list'] = User.objects.filter(
+                id__in=students_with_reflects
+            ).order_by('first_name', 'last_name', 'username')
+        
+        # Thêm các filter parameters hiện tại để maintain state
+        filter_params = {}
+        for param in ['search', 'status', 'category', 'priority', 'date_from', 'date_to', 'student']:
+            value = self.request.GET.get(param, '').strip()
+            if value:
+                filter_params[param] = value
+        context['current_filters'] = filter_params
+        
+        return context
 
 class ReflectDetailView(DetailView):
     model = Reflect
@@ -127,14 +224,13 @@ class ReflectDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Danh sách phản hồi
+        # Danh sách phản hồi của giáo viên
         context["responses"] = self.object.responses.all().order_by("created_at")
-        # Form để giáo viên gửi phản hồi mới
-        if self.request.user.is_authenticated and hasattr(self.request.user, 'is_teacher') and self.request.user.is_teacher:
+
+        # Form phản hồi (chỉ hiện với giáo viên)
+        if self.request.user.is_authenticated and getattr(self.request.user, "is_teacher", False) or self.request.user.is_superuser:
             context["form"] = ReflectResponseForm()
         return context
-
-
 
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -152,6 +248,9 @@ def create_response(request, reflect_id):
             response.reflect = reflect
             response.teacher = request.user
             response.save()
+            
+            reflect.status = "active"
+            reflect.save()
             return redirect("reflect_detail", pk=reflect.id)
     else:
         form = ReflectResponseForm()
@@ -169,6 +268,10 @@ def rate_response(request, resp_id):
         if 1 <= rating <= 5:
             resp.rating = rating
             resp.save()
+            
+            reflect = resp.reflect
+            reflect.status = "done"
+            reflect.save()
     return redirect("reflect_detail", pk=resp.reflect.id)
 
 
@@ -295,3 +398,10 @@ def delete_survey(request, survey_id):
         survey.delete()
         return redirect('surveys_view')
     return render(request, 'reflect/delete_survey.html', {'survey': survey})
+
+from django.shortcuts import render
+from .models import Survey
+
+def home(request):
+    surveys = Survey.objects.filter(status='active').order_by('end_date')
+    return render(request, "home.html", {"surveys": surveys})

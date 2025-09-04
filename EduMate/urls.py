@@ -19,9 +19,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render
 from user.views import type_view  # view chung có thể để trong app user
+from reflect.views import home
 
-def home(request):
-    return render(request, "home.html")
 
 urlpatterns = [
     path("", home, name="home"),

@@ -5,4 +5,25 @@
 {% block content %}
 <h1>Chào mừng đến với hệ thống EduMate 🎓</h1>
 <p>Sinh viên có thể gửi phản ánh, xem tài liệu, và giáo viên có thể phản hồi.</p>
+
+<hr>
+
+<h2>📋 Khảo sát đang mở</h2>
+{% if surveys %}
+  <ul class="list-group mt-3">
+    {% for survey in surveys %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ survey.title }}</strong>
+          {% if survey.end_date %}
+            <small class="text-muted">(Đến {{ survey.end_date }})</small>
+          {% endif %}
+        </div>
+        <a href="{{ survey.link }}" target="_blank" class="btn btn-sm btn-primary">Tham gia</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="text-muted mt-3">Hiện chưa có khảo sát nào đang mở.</p>
+{% endif %}
 {% endblock %}

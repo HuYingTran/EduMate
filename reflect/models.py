@@ -12,17 +12,37 @@ class Type(models.Model):
 
 # Phản ánh của sinh viên
 class Reflect(models.Model):
+    STATUS_CHOICES = [
+        ("create", "Đang mở"),
+        ("active", "Đã xử"),
+        ("done", "Kết thúc"),
+        ("cancel", "Hủy bỏ"),
+    ]
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reflections")
     title = models.CharField(max_length=200)
     content = models.TextField()
     type = models.ForeignKey(Type, on_delete=models.SET_NULL, null=True, blank=True, related_name="reflects")
     bo_mon = models.ForeignKey(BoMon, on_delete=models.SET_NULL, null=True, blank=True, related_name="reflects")
     attachment = models.FileField(upload_to="reflect_attachments/", null=True, blank=True)
+    anonymous = models.BooleanField(default=False)   # 🔹 thêm trường ẩn danh
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default="create"
+    )
 
     def __str__(self):
         return f"{self.title} - {self.student}"
 
+    @property
+    def display_student(self):
+        """Trả về tên SV hoặc 'Ẩn danh' nếu chọn ẩn danh"""
+        if self.anonymous:
+            return "Ẩn danh"
+        if hasattr(self.student, "sv"):
+            return self.student.sv.ho_ten
+        return self.student.username
 
 # Phản hồi của giáo viên
 class ReflectResponse(models.Model):
@@ -68,3 +88,11 @@ class Survey(models.Model):
 
     def __str__(self):
         return self.title
+
+from django.contrib.auth.models import User
+
+@property
+def is_teacher(self):
+    return hasattr(self, "gv") and self.gv.status == "A"
+
+User.add_to_class("is_teacher", is_teacher)

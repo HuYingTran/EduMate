@@ -16,24 +16,93 @@
   <div class="mb-5">
     <h4>Số phản ánh theo loại ({{ current_month }})</h4>
     <canvas id="reflectByTypeChart" height="120"></canvas>
+
+    <!-- Bảng -->
+    <table class="table table-bordered mt-3">
+      <thead>
+        <tr>
+          <th>Loại</th>
+          <th>Số phản ánh</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reflect_by_type %}
+        <tr>
+          <td>{{ r.name_type }}</td>
+          <td>{{ r.total_reflects }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 
   <!-- Biểu đồ rating trung bình theo Type -->
   <div class="mb-5">
     <h4>Rating trung bình theo loại ({{ current_month }})</h4>
     <canvas id="ratingByTypeChart" height="120"></canvas>
+
+    <table class="table table-bordered mt-3">
+      <thead>
+        <tr>
+          <th>Loại</th>
+          <th>Rating trung bình</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rating_by_type %}
+        <tr>
+          <td>{{ r.name_type }}</td>
+          <td>{{ r.avg_rating|floatformat:1 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 
   <!-- Biểu đồ xu hướng phản ánh theo tháng -->
   <div class="mb-5">
     <h4>Xu hướng phản ánh theo tháng</h4>
     <canvas id="reflectsByMonthChart" height="120"></canvas>
+
+    <table class="table table-bordered mt-3">
+      <thead>
+        <tr>
+          <th>Tháng</th>
+          <th>Số phản ánh</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reflects_by_month %}
+        <tr>
+          <td>{{ r.month }}</td>
+          <td>{{ r.total }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 
   <!-- Biểu đồ quạt tỷ lệ phản ánh trong tháng -->
   <div class="mb-5">
     <h4>Tỷ lệ phản ánh theo loại ({{ current_month }})</h4>
     <canvas id="reflectPieChart" height="120"></canvas>
+
+    <table class="table table-bordered mt-3">
+      <thead>
+        <tr>
+          <th>Loại</th>
+          <th>Số phản ánh trong tháng</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reflects_pie_month %}
+        <tr>
+          <td>{{ r.name_type }}</td>
+          <td>{{ r.total_in_month }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 
 </div>
@@ -42,13 +111,11 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  // Inject dữ liệu từ Django vào JS
   const reflectByType = {{ reflect_by_type|safe }};
   const ratingByType = {{ rating_by_type|safe }};
   const reflectsByMonth = {{ reflects_by_month|safe }};
   const reflectsPieMonth = {{ reflects_pie_month|safe }};
 
-  // Biểu đồ số phản ánh theo Type
   new Chart(document.getElementById('reflectByTypeChart'), {
     type: 'bar',
     data: {
@@ -61,7 +128,6 @@
     }
   });
 
-  // Biểu đồ rating trung bình theo Type
   new Chart(document.getElementById('ratingByTypeChart'), {
     type: 'bar',
     data: {
@@ -74,7 +140,6 @@
     }
   });
 
-  // Biểu đồ xu hướng phản ánh theo tháng
   new Chart(document.getElementById('reflectsByMonthChart'), {
     type: 'line',
     data: {
@@ -89,7 +154,6 @@
     }
   });
 
-  // Biểu đồ quạt tỷ lệ phản ánh trong tháng
   new Chart(document.getElementById('reflectPieChart'), {
     type: 'doughnut',
     data: {
