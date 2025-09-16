@@ -13,10 +13,10 @@ class Type(models.Model):
 # Phản ánh của sinh viên
 class Reflect(models.Model):
     STATUS_CHOICES = [
-        ("create", "Đã tạo"),
-        ("active", "Đã xử lý"),
-        ("done", "Hoàn thành"),
-        ("cancel", "Đã hủy"),
+        ("create", "Đang chờ duyệt"),
+        ("active", "Đã duyệt"),
+        ("done", "Đã xử lý"),
+        ("cancel", "Không được duyệt"),
     ]
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reflections")
     title = models.CharField(max_length=200)

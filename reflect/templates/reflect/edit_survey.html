@@ -56,12 +56,12 @@
                         </div>
                     </div>
 
-                    <!-- <div class="choices-section mt-3" style="display: none;">
+                    <div class="choices-section mt-3">
                         <label>Choices (one per line):</label>
                         {{ form.choices_text }}
-                    </div> -->
+                    </div>
 
-                    <!-- {{ form.DELETE }}  -->
+                    {{ form.DELETE }} 
                     {{ form.id }}
                 </div>
                 {% endfor %}
@@ -105,7 +105,7 @@
                         </div>
                     </div>
 
-                    <div class="choices-section mt-3" style="display: none;">
+                    <div class="choices-section mt-3">
                         <label>Choices (one per line):</label>
                         <textarea name="questions-__prefix__-choices_text" class="form-control" rows="3"></textarea>
                     </div>
@@ -123,28 +123,94 @@
 
 {% block extra_js %}
     {{ block.super }}
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Xử lý nút xóa câu hỏi
-            document.addEventListener("click", function(event) {
-                if (event.target.closest(".remove-question")) {
-                    let questionForm = event.target.closest(".question-form");
-                    if (questionForm) {
-                        // Tìm input DELETE trong form này
-                        let deleteInput = questionForm.querySelector("input[type='checkbox'][name$='-DELETE']");
-                        if (deleteInput) {
-                            // Đánh dấu xóa
-                            deleteInput.checked = true;
-                            // Ẩn form đi
-                            questionForm.style.display = "none";
-                        } else {
-                            // Nếu là form mới chưa save -> xóa hẳn khỏi DOM
-                            questionForm.remove();
-                        }
-                    }
-                }
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let formIndex = {{ formset.forms|length }};
+    const maxForms = 20;
+    
+    function toggleChoicesSection(questionForm) {
+        const typeSelect = questionForm.querySelector('select[name$="-question_type"]');
+        const choicesSection = questionForm.querySelector('.choices-section');
+        
+        if (typeSelect && choicesSection) {
+            choicesSection.style.display = (typeSelect.value === 'choice') ? 'block' : 'none';
+        }
+    }
+
+    // Áp dụng cho form có sẵn
+    document.querySelectorAll('.question-form').forEach(function(form) {
+        const typeSelect = form.querySelector('select[name$="-question_type"]');
+        if (typeSelect) {
+            toggleChoicesSection(form);
+            typeSelect.addEventListener('change', function() {
+                toggleChoicesSection(form);
             });
+        }
+    });
+    
+    // Thêm câu hỏi mới
+    document.getElementById('add-question').addEventListener('click', function() {
+        if (formIndex >= maxForms) {
+            alert('Maximum ' + maxForms + ' questions allowed');
+            return;
+        }
+        
+        const emptyForm = document.getElementById('empty-form');
+        const newFormHtml = emptyForm.innerHTML.replace(/__prefix__/g, formIndex);
+        
+        const questionForms = document.getElementById('question-forms');
+        const div = document.createElement('div');
+        div.innerHTML = newFormHtml;
+        const newForm = div.firstElementChild;
+        questionForms.appendChild(newForm);
+        
+        const totalForms = document.getElementById('id_questions-TOTAL_FORMS');
+        totalForms.value = parseInt(totalForms.value) + 1;
+        
+        const typeSelect = newForm.querySelector('select[name$="-question_type"]');
+        if (typeSelect) {
+            toggleChoicesSection(newForm); // gọi ngay khi tạo
+            typeSelect.addEventListener('change', function() {
+                toggleChoicesSection(newForm);
+            });
+        }
+        
+        updateQuestionNumbers();
+        formIndex++;
+    });
+    
+    // Xóa câu hỏi
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-question') || e.target.closest('.remove-question')) {
+            const questionForm = e.target.closest('.question-form');
+            const deleteCheckbox = questionForm.querySelector('input[name$="-DELETE"]');
+            
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+                questionForm.style.display = 'none';
+            } else {
+                questionForm.remove();
+                const totalForms = document.getElementById('id_questions-TOTAL_FORMS');
+                totalForms.value = parseInt(totalForms.value) - 1;
+            }
+            
+            updateQuestionNumbers();
+        }
+    });
+    
+    // Cập nhật số thứ tự câu hỏi
+    function updateQuestionNumbers() {
+        let count = 1;
+        document.querySelectorAll('.question-form:not([style*="display: none"])').forEach(function(form) {
+            const header = form.querySelector('h6');
+            if (header) {
+                header.textContent = 'Question ' + count;
+            }
+            count++;
         });
-    </script>
+    }
+});
+</script>
+
 {% endblock %}
 

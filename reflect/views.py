@@ -601,3 +601,23 @@ def delete_survey(request, survey_id):
         messages.success(request, "Xóa khảo sát thành công.")
         return redirect("survey_list")
     return redirect("survey_list")
+
+@login_required
+def change_reflect_status(request, reflect_id):
+    reflect = get_object_or_404(Reflect, pk=reflect_id)
+
+    # chỉ cho admin/giáo viên sửa trạng thái
+    if not (request.user.is_staff or request.user.is_superuser or getattr(request.user, "is_teacher", False)):
+        return HttpResponseForbidden("Bạn không có quyền thay đổi trạng thái.")
+
+    if request.method == "POST":
+        new_status = request.POST.get("status")
+        valid_choices = [choice[0] for choice in Reflect.STATUS_CHOICES]
+        if new_status in valid_choices:
+            reflect.status = new_status
+            reflect.save()
+            messages.success(request, "Cập nhật trạng thái thành công.")
+        else:
+            messages.error(request, "Trạng thái không hợp lệ.")
+
+    return redirect("reflect_detail", pk=reflect.id)

@@ -56,7 +56,7 @@ class SurveyForm(forms.ModelForm):
 
 class QuestionForm(forms.ModelForm):
     choices_text = forms.CharField(
-        required=False, 
+        required=False,
         widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Enter choices (one per line)'}),
         help_text='For multiple choice questions, enter one choice per line'
     )
@@ -70,25 +70,31 @@ class QuestionForm(forms.ModelForm):
             'is_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
         }
-    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Nếu đang edit câu hỏi, load choices vào textarea
+        if self.instance and self.instance.pk:
+            choices = self.instance.choices.order_by('order').values_list('text', flat=True)
+            self.fields['choices_text'].initial = "\n".join(choices)
+
     def save(self, commit=True):
         question = super().save(commit)
-        
-        if commit and self.cleaned_data.get('choices_text'):
-            # Delete existing choices
+        choices_text = self.cleaned_data.get('choices_text')
+
+        if commit and choices_text is not None:
+            # Xoá hết choice cũ
             question.choices.all().delete()
-            
-            # Create new choices
-            choices_lines = self.cleaned_data['choices_text'].strip().split('\n')
+            # Thêm lại choice mới
+            choices_lines = [c.strip() for c in choices_text.strip().split('\n') if c.strip()]
             for i, choice_text in enumerate(choices_lines):
-                if choice_text.strip():
-                    Choice.objects.create(
-                        question=question,
-                        text=choice_text.strip(),
-                        order=i
-                    )
-        
+                Choice.objects.create(
+                    question=question,
+                    text=choice_text,
+                    order=i
+                )
         return question
+
 
 QuestionFormSet = inlineformset_factory(
     Survey, 

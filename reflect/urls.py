@@ -25,4 +25,5 @@ urlpatterns = [
     path('survey/results/<int:survey_id>/', views.survey_results, name='survey_results'),
     path('survey/<int:survey_id>/edit/', views.edit_survey, name='edit_survey'),
     path("<int:survey_id>/delete/", views.delete_survey, name="delete_survey"),
+    path("reflect/<int:reflect_id>/status/", views.change_reflect_status, name="change_reflect_status"),
 ]

@@ -17,6 +17,34 @@
     <p><b>Bộ môn:</b> {% if reflect.bo_mon %}{{ reflect.bo_mon.ten }}{% else %}Chưa chọn{% endif %}</p>
     <p><b>Nội dung:</b> {{ reflect.content }}</p>
 
+    <!-- Trạng thái phản ánh -->
+    <p><b>Trạng thái:</b>
+        <span class="badge 
+            {% if reflect.status == 'pending' %} bg-warning 
+            {% elif reflect.status == 'processing' %} bg-info 
+            {% elif reflect.status == 'done' %} bg-success 
+            {% else %} bg-secondary {% endif %}">
+            {{ reflect.get_status_display }}
+        </span>
+    </p>
+
+<h3>Trạng thái hiện tại: {{ reflect.get_status_display }}</h3>
+
+{% if user.is_staff or user.is_superuser or user.is_teacher %}
+<form method="post" action="{% url 'change_reflect_status' reflect.id %}">
+    {% csrf_token %}
+    <label for="status">Đổi trạng thái:</label>
+    <select name="status" id="status" class="form-select w-auto d-inline-block">
+        {% for value, label in reflect.STATUS_CHOICES %}
+            <option value="{{ value }}" {% if reflect.status == value %}selected{% endif %}>
+                {{ label }}
+            </option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Cập nhật</button>
+</form>
+{% endif %}
+
     <!-- File đính kèm phản ánh -->
     <div id="attachments">
         {% if reflect.attachment %}
@@ -87,8 +115,6 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-
-    // ================= Hiển thị ảnh đính kèm đã upload =================
     function showImages(container) {
         const attachments = container.querySelectorAll(".attachment");
         attachments.forEach(a => {
@@ -105,17 +131,14 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Phản ánh chính
     const reflectAttachments = document.getElementById("attachments");
     if (reflectAttachments) showImages(reflectAttachments);
 
-    // Phản hồi
     {% for resp in responses %}
         const respContainer = document.getElementById("resp-attachments-{{ resp.id }}");
         if (respContainer) showImages(respContainer);
     {% endfor %}
 
-    // ================= Preview khi upload file mới =================
     const attachmentInput = document.querySelector('input[name="attachment"]');
     const preview = document.getElementById('attachment-preview');
 
@@ -123,7 +146,7 @@ document.addEventListener("DOMContentLoaded", function() {
         attachmentInput.addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
-                if (file.type.startsWith('image/')) { // Chỉ preview ảnh
+                if (file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         preview.src = e.target.result;
