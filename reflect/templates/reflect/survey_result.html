@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="survey-results-page container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">{{ survey.title }} - Results</h2>
+            <p class="text-muted">{{ survey.description }}</p>
+        </div>
+        <div>
+            <span class="badge bg-primary fs-6 shadow-sm px-3 py-2">
+                {{ responses.count }} Response{{ responses.count|pluralize }}
+            </span>
+        </div>
+    </div>
+
+    {# --- Filter theo câu hỏi đầu tiên --- #}
+    {% if first_question %}
+    <form method="get" class="mb-3 d-flex align-items-center gap-2">
+        <label for="first_question_answer" class="mb-0 fw-bold">
+            Filter by "{{ first_question.text }}":
+        </label>
+
+        {% if first_question.question_type == "choice" %}
+        <select name="first_question_answer" id="first_question_answer" class="form-select w-auto">
+            <option value="">All</option>
+            {% for choice in first_question.choices.all %}
+            <option value="{{ choice.id }}" {% if request.GET.first_question_answer == choice.id|stringformat:"s" %}selected{% endif %}>
+                {{ choice.text }}
+            </option>
+            {% endfor %}
+        </select>
+
+        {% elif first_question.question_type == "text" %}
+        <input type="text" name="first_question_answer" id="first_question_answer" class="form-control w-auto"
+               value="{{ request.GET.first_question_answer }}" placeholder="Enter text">
+
+{% elif first_question.question_type == "rating" %}
+<select name="first_question_answer" id="first_question_answer" class="form-select w-auto">
+    <option value="">All</option>
+    {% for i in rating_choices %}
+        <option value="{{ i }}" {% if request.GET.first_question_answer == i|stringformat:"s" %}selected{% endif %}>
+            {{ i }}★
+        </option>
+    {% endfor %}
+</select>
+{% endif %}
+
+
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </form>
+    {% endif %}
+
+    {% if responses %}
+        {% for question in questions %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">{{ question.text }}</h5>
+                <small class="text-muted">{{ question.type|title }}</small>
+            </div>
+            <div class="card-body">
+                {% if question.type == "text" %}
+                    {% if question.text_answers %}
+                        {% for ans in question.text_answers %}
+                        <div class="border-start border-primary ps-3 mb-2">
+                            <p class="mb-1">{{ ans.text_answer }}</p>
+                            <small class="text-muted">{{ ans.response.submitted_at }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No responses yet</p>
+                    {% endif %}
+
+                {% elif question.type == "choice" %}
+                    <div class="row">
+                        <div class="col-md-7">
+                            {% for choice in question.choices %}
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between">
+                                        <span>{{ choice.text }}</span>
+                                        <span class="text-muted">{{ choice.count }} ({{ choice.percent }}%)</span>
+                                    </div>
+                                    <div class="progress" style="height: 18px;">
+                                        <div class="progress-bar bg-info" style="width: {{ choice.percent }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-5 d-flex align-items-center justify-content-center">
+                            <canvas id="chart-{{ question.id }}" height="200"></canvas>
+                        </div>
+                    </div>
+
+                {% elif question.type == "rating" %}
+                    {% if question.average_rating %}
+                    <div class="row">
+                        <div class="col-md-7">
+                            <h4 class="text-primary mb-3">{{ question.average_rating }}/5.0</h4>
+                            {% for row in question.rating_breakdown %}
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="me-2">{{ row.stars }}★</span>
+                                <div class="progress flex-grow-1 me-2" style="height: 15px;">
+                                    <div class="progress-bar bg-warning" style="width: {{ row.percent }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ row.count }}</small>
+                            </div>
+                            {% endfor %}
+                            <p class="text-muted mt-2">Based on {{ responses.count }} responses</p>
+                        </div>
+                        <div class="col-md-5 d-flex align-items-center justify-content-center">
+                            <canvas id="chart-{{ question.id }}" height="200"></canvas>
+                        </div>
+                    </div>
+                    {% else %}
+                        <p class="text-muted">No ratings yet</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info text-center">
+            <h5>No responses yet</h5>
+            <p>Share your survey link to start collecting responses:</p>
+            <code>{{ request.build_absolute_uri }}{% url 'take_survey' survey.id %}</code>
+        </div>
+    {% endif %}
+
+    <hr class="my-4">
+    <h4>All Responses</h4>
+    {% if responses %}
+    <div class="accordion" id="responsesAccordion">
+        {% for response in responses %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
+                        aria-controls="collapse{{ forloop.counter }}">
+                    Response {{ forloop.counter }} - {{ response.submitted_at|date:"M d, Y H:i" }}
+                </button>
+            </h2>
+            <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
+                 aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#responsesAccordion">
+                <div class="accordion-body">
+                    <ul class="list-group">
+                        {% for answer in response.answers.all %}
+                        <li class="list-group-item">
+                            <strong>{{ answer.question.text }}:</strong>
+                            {% if answer.text_answer %}
+                                {{ answer.text_answer }}
+                            {% elif answer.choice_answer %}
+                                {{ answer.choice_answer.text }}
+                            {% elif answer.rating_answer %}
+                                {{ answer.rating_answer }} / 5
+                            {% else %}
+                                <em>No answer</em>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+        <p class="text-muted">No one has answered this survey yet.</p>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{% url 'survey_list' %}" class="btn btn-secondary">Back to Surveys</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    {% for question in questions %}
+        {% if question.type == "choice" or question.type == "rating" %}
+        new Chart(document.getElementById("chart-{{ question.id }}"), {
+            type: "pie",
+            data: {
+                labels: {{ question.chart_labels|safe }},
+                datasets: [{
+                    data: {{ question.chart_counts|safe }},
+                    backgroundColor: ["#007bff","#28a745","#ffc107","#dc3545","#6f42c1"]
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+        });
+        {% endif %}
+    {% endfor %}
+});
+</script>
+
+<style>
+/* CSS riêng cho trang Results */
+.survey-results-page h2 { color: #2c3e50; }
+.survey-results-page .card { border-radius: 12px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.survey-results-page .card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.survey-results-page .card-header { background: #f8f9fa; border-bottom: 1px solid #eee; border-radius: 12px 12px 0 0; }
+.survey-results-page .progress { border-radius: 10px; overflow: hidden; }
+.survey-results-page .progress-bar { font-size: 0.8rem; font-weight: 500; }
+.survey-results-page .accordion-button { font-weight: 500; }
+.survey-results-page .accordion-button:focus { box-shadow: none; }
+.survey-results-page .list-group-item { border: none; border-bottom: 1px solid #f1f1f1; }
+.survey-results-page .list-group-item:last-child { border-bottom: none; }
+.survey-results-page code { background: #f8f9fa; padding: 3px 6px; border-radius: 6px; font-size: 0.9rem; }
+</style>
+{% endblock %}

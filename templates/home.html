@@ -3,46 +3,47 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<h1>Chào mừng đến với hệ thống EduMate 🎓</h1>
-<p>Sinh viên có thể gửi phản ánh, xem tài liệu, và giáo viên có thể phản hồi.</p>
+<div class="container py-4">
+  <!-- Header -->
+  <div class="text-center mb-4">
+    <h1 class="fw-bold">🎓 Chào mừng đến với hệ thống <span class="text-primary">EduMate</span></h1>
+    <p class="text-muted">Sinh viên có thể gửi phản ánh, xem tài liệu, và giáo viên có thể phản hồi.</p>
+  </div>
 
-<hr>
+  <!-- Chat Card -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-primary text-white fw-semibold">
+      💬 Trò chuyện với hệ thống
+    </div>
+    <div class="card-body d-flex flex-column" style="height: 450px;">
+      <!-- Chat messages -->
+      <div id="chatMessages" class="flex-grow-1 border rounded p-3 mb-3 bg-light" 
+           style="overflow-y: auto;">
+        <!-- Lịch sử chat sẽ được load vào đây -->
+      </div>
 
-<h2>📋 Khảo sát đang mở</h2>
-{% if surveys %}
-  <ul class="list-group mt-3">
-    {% for survey in surveys %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-          <strong>{{ survey.title }}</strong>
-          {% if survey.end_date %}
-            <small class="text-muted">(Đến {{ survey.end_date }})</small>
-          {% endif %}
+      <!-- Input + Suggestions -->
+      <div class="position-relative">
+        <div class="input-group">
+          <input type="text" id="chatInput" class="form-control" 
+                 placeholder="Nhập tin nhắn..." autocomplete="off">
+          <button id="chatSend" class="btn btn-primary"> Gửi
+            <i class="bi bi-send-fill"></i>
+          </button>
         </div>
-        <a href="{{ survey.link }}" target="_blank" class="btn btn-sm btn-primary">Tham gia</a>
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p class="text-muted mt-3">Hiện chưa có khảo sát nào đang mở.</p>
-{% endif %}
-
-<hr>
-
-<h2>💬 Trò chuyện với hệ thống</h2>
-<div id="chatMessages" class="border p-3 mb-3" style="height: 250px; overflow-y: auto;">
-  <!-- Lịch sử chat sẽ được tải vào đây -->
-</div>
-
-<div class="input-group">
-  <input type="text" id="chatInput" class="form-control" placeholder="Nhập tin nhắn...">
-  <button id="chatSend" class="btn btn-primary">Gửi</button>
+          <ul id="suggestionsList" 
+            class="list-group position-absolute w-100" 
+            style="z-index: 1000; display: none;">
+          </ul>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
-{% block extra_scripts %}
+{% block extra_js %}
 <script>
-// Lịch sử chat từ Django template (CÁCH ĐÚNG)
+// Lịch sử chat từ Django template
 const chatHistory = [
   {% for msg in chat_history %}
   {
@@ -52,66 +53,100 @@ const chatHistory = [
   {% endfor %}
 ];
 
+// Render chat dạng bubble
+function renderMessage(role, text) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "message " + (role === "user" ? "message-user" : "message-bot");
+  wrapper.innerHTML = `
+    <div class="bubble ${role === "user" ? "bubble-user" : "bubble-bot"}">
+      ${text}
+    </div>
+  `;
+  return wrapper;
+}
+
 function loadChatHistory() {
   const chatBox = document.getElementById("chatMessages");
   chatBox.innerHTML = "";
 
   if (chatHistory.length === 0) {
-    chatBox.innerHTML = '<div class="text-center text-muted"><i>Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!</i></div>';
+    chatBox.innerHTML = `
+      <div class="text-center text-muted mt-5">
+        <i class="bi bi-chat-dots fs-4 d-block mb-2"></i>
+        <small>Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!</small>
+      </div>`;
     return;
   }
 
   chatHistory.forEach(msg => {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'mb-2';
-    messageDiv.innerHTML = `
-      <div><b>Bạn:</b> ${msg.question}</div>
-      ${msg.answer 
-        ? `<div class="ms-3 text-primary"><b>Bot:</b> ${msg.answer}</div>` 
-        : `<div class="ms-3 text-muted"><i>(Chưa có câu trả lời)</i></div>`
-      }
-      <hr class="my-2">
-    `;
-    chatBox.appendChild(messageDiv);
+    chatBox.appendChild(renderMessage("user", msg.question));
+    if (msg.answer) {
+      chatBox.appendChild(renderMessage("bot", msg.answer));
+    } else {
+      chatBox.appendChild(renderMessage("bot", "<i>(Chưa có câu trả lời)</i>"));
+    }
   });
 
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// Gửi tin nhắn
-document.getElementById("chatSend").addEventListener("click", function() {
-  sendMessage();
+// Autocomplete gợi ý
+const chatInput = document.getElementById("chatInput");
+const suggestionsList = document.getElementById("suggestionsList");
+suggestionsList.style.textAlign = "left";
+chatInput.addEventListener("input", function() {
+  const query = this.value.trim();
+  if (!query) {
+    suggestionsList.style.display = "none";
+    return;
+  }
+
+  fetch(`/chat/suggestions/?q=${encodeURIComponent(query)}`)
+    .then(res => res.json())
+    .then(data => {
+      suggestionsList.innerHTML = "";
+      if (data.suggestions.length > 0) {
+        data.suggestions.forEach(s => {
+          const li = document.createElement("li");
+          li.className = "list-group-item list-group-item-action";
+          li.textContent = s;
+          li.addEventListener("click", () => {
+            chatInput.value = s;
+            suggestionsList.style.display = "none";
+          });
+          suggestionsList.appendChild(li);
+        });
+        suggestionsList.style.display = "block";
+      } else {
+        suggestionsList.style.display = "none";
+      }
+    })
+    .catch(err => console.error(err));
 });
 
-// Cho phép gửi bằng Enter
-document.getElementById("chatInput").addEventListener("keypress", function(e) {
-  if (e.key === "Enter") {
-    sendMessage();
+document.addEventListener("click", (e) => {
+  if (!chatInput.contains(e.target) && !suggestionsList.contains(e.target)) {
+    suggestionsList.style.display = "none";
   }
 });
 
+// Gửi tin nhắn
+document.getElementById("chatSend").addEventListener("click", sendMessage);
+chatInput.addEventListener("keypress", function(e) {
+  if (e.key === "Enter") sendMessage();
+});
+
 function sendMessage() {
-  const input = document.getElementById("chatInput");
-  const msg = input.value.trim();
+  const msg = chatInput.value.trim();
   if (!msg) return;
 
   const chatBox = document.getElementById("chatMessages");
-  
-  // Thêm tin nhắn của user ngay lập tức
-  const userMessageDiv = document.createElement('div');
-  userMessageDiv.className = 'mb-2';
-  userMessageDiv.innerHTML = `
-    <div><b>Bạn:</b> ${msg}</div>
-    <div class="ms-3 text-muted"><i>Đang xử lý...</i></div>
-    <hr class="my-2">
-  `;
-  chatBox.appendChild(userMessageDiv);
+  chatBox.appendChild(renderMessage("user", msg));
+  const pending = renderMessage("bot", "<i>Đang xử lý...</i>");
+  chatBox.appendChild(pending);
   chatBox.scrollTop = chatBox.scrollHeight;
-  
-  // Xóa input
-  input.value = "";
+  chatInput.value = "";
 
-  // Gửi request
   fetch("{% url 'chat_send' %}", {
     method: "POST",
     headers: {
@@ -122,25 +157,58 @@ function sendMessage() {
   })
   .then(res => res.json())
   .then(data => {
-    // Cập nhật tin nhắn cuối cùng với phản hồi từ bot
-    const lastMessage = chatBox.lastElementChild;
-    const botReply = lastMessage.querySelector('.text-muted');
-    botReply.className = 'ms-3 text-primary';
-    botReply.innerHTML = `<b>Bot:</b> ${data.reply}`;
-    
+    pending.innerHTML = `<div class="bubble bubble-bot">🤖 ${data.reply}</div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
   })
-  .catch(error => {
-    console.error('Error:', error);
-    const lastMessage = chatBox.lastElementChild;
-    const botReply = lastMessage.querySelector('.text-muted');
-    botReply.innerHTML = '<i>Lỗi khi gửi tin nhắn. Vui lòng thử lại.</i>';
+  .catch(() => {
+    pending.innerHTML = `<div class="bubble bubble-bot text-danger">⚠️ Lỗi khi gửi tin nhắn.</div>`;
   });
 }
 
-// Tải lịch sử chat khi trang được load
-document.addEventListener('DOMContentLoaded', function() {
-  loadChatHistory(); // SỬA: gọi đúng tên hàm
-});
+document.addEventListener("DOMContentLoaded", loadChatHistory);
 </script>
+
+<style>
+/* Chat bubble style */
+.message {
+  display: flex;
+  margin-bottom: 10px;
+}
+.message-user {
+  justify-content: flex-end;
+}
+.message-bot {
+  justify-content: flex-start;
+}
+.bubble {
+  padding: 10px 14px;
+  border-radius: 18px;
+  max-width: 70%;
+  word-wrap: break-word;
+}
+.bubble-user {
+  background: #0d6efd;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+.bubble-bot {
+  background: #e9ecef;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+
+/* Suggestions dropdown */
+#suggestionsList {
+  text-align: left;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ced4da;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  background-color: white;
+}
+#suggestionsList li:hover {
+  background-color: #f1f1f1;
+}
+</style>
 {% endblock %}

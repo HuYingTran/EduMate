@@ -1,12 +1,30 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h1>{{ object_type }}</h1>
+<div class="card shadow-sm p-4">
+    <h2 class="mb-4 text-primary">{{ object_type }}</h2>
 
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">💾 Lưu</button>
-</form>
+    <form method="post" class="row g-3">
+        {% csrf_token %}
 
-<a href="{% url object_prefix|add:'_list' %}">⬅️ Quay lại danh sách {{ object_type }}</a>
+        <!-- Loop qua các field -->
+        {% for field in form %}
+        <div class="col-md-6">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+            <div class="text-danger mt-1 small">
+                {{ field.errors }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- Buttons -->
+        <div class="col-12 mt-3">
+            <button type="submit" class="btn btn-primary me-2">💾 Lưu</button>
+            <a href="{% url object_prefix|add:'_list' %}" class="btn btn-outline-secondary">⬅️ Quay lại</a>
+        </div>
+    </form>
+</div>
 {% endblock %}

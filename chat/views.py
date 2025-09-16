@@ -79,3 +79,64 @@ def get_chat_history(request):
         return JsonResponse({'history': history})
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+from django.db.models import Q
+from .models import ChatMessage  # hoặc model lưu câu hỏi
+
+@require_GET
+def chat_suggestions(request):
+    query = request.GET.get('q', '').strip()
+    suggestions = []
+    if query:
+        # Lọc các câu hỏi bắt đầu hoặc chứa query, loại bỏ trùng
+        qs = ChatMessage.objects.filter(
+            question__icontains=query
+        ).values_list('question', flat=True).distinct()[:5]  # tối đa 5 gợi ý
+        suggestions = list(qs)
+    return JsonResponse({'suggestions': suggestions})
+
+import openpyxl
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.contrib.auth.models import User
+from .models import ChatMessage
+
+@login_required
+@user_passes_test(is_teacher_or_admin)
+def import_qna_excel(request):
+    if request.method == "POST" and request.FILES.get("excel_file"):
+        excel_file = request.FILES["excel_file"]
+
+        try:
+            wb = openpyxl.load_workbook(excel_file)
+            ws = wb.active
+
+            # Giả sử cột Excel: Username | Question | Answer
+            rows = list(ws.iter_rows(min_row=2, values_only=True))
+            imported = 0
+
+            for row in rows:
+                username, question, answer = row[0], row[1], row[2] if len(row) > 2 else None
+
+                if not question:
+                    continue
+
+                # Nếu không có username thì gán user=None
+                user = None
+                if username:
+                    user, _ = User.objects.get_or_create(username=username)
+
+                ChatMessage.objects.create(
+                    user=user,
+                    question=question,
+                    answer=answer if answer else None
+                )
+                imported += 1
+
+            messages.success(request, f"✅ Đã import {imported} câu hỏi/trả lời từ Excel.")
+        except Exception as e:
+            messages.error(request, f"⚠️ Lỗi khi import file: {e}")
+
+    return redirect("unanswered_questions")  # quay lại trang quản lý

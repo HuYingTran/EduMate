@@ -137,6 +137,6 @@ STATICFILES_DIRS = [
 
 # Chỉ dùng STATIC_ROOT khi collectstatic
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
+LOGIN_URL = '/user/login/'
 
 CSRF_FAILURE_VIEW = "user.views.csrf_failure"

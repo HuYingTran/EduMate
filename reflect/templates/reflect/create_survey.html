@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}Tạo Khảo sát - EduMate{% endblock %}
+
+{% block content %}
+<h2>Tạo phiếu khảo sát mới</h2>
+<form method="post" id="survey-form">
+    {% csrf_token %}
+    
+    <div class="card mb-4">
+        <div class="card-header"><h5>Tổng quát</h5></div>
+        <div class="card-body">
+            {{ form.as_p }}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5>Câu hỏi</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            {{ formset.management_form }}
+            <div id="question-forms">
+                {% for form in formset %}
+                <div class="question-form border p-3 mb-3" data-form-index="{{ forloop.counter0 }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="text-primary">Question {{ forloop.counter }}</h6>
+                        {% if not forloop.first or formset.forms|length > 1 %}
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-question">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label>Question Text:</label>
+                            {{ form.text }}
+                        </div>
+                        <div class="col-md-4">
+                            <label>Type:</label>
+                            {{ form.question_type }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                {{ form.is_required }}
+                                <label class="form-check-label">Required</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Order:</label>
+                            {{ form.order }}
+                        </div>
+                    </div>
+                    
+                    <div class="choices-section mt-3" style="display: none;">
+                        <label>Choices (one per line):</label>
+                        {{ form.choices_text }}
+                    </div>
+                    
+                    {% if form.DELETE %}
+                        <div style="display: none;">{{ form.DELETE }}</div>
+                    {% endif %}
+                    
+                    {% if form.id %}
+                        <div style="display: none;">{{ form.id }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div id="empty-form" style="display: none;">
+                <div class="question-form border p-3 mb-3" data-form-index="__prefix__">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="text-primary">New Question</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-question">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label>Question Text:</label>
+                            <input type="text" name="questions-__prefix__-text" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label>Type:</label>
+                            <select name="questions-__prefix__-question_type" class="form-select">
+                                <option value="choice">Multiple Choice</option>
+                                <option value="text">Text</option>
+                                <option value="rating">Rating (1-5)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" name="questions-__prefix__-is_required" class="form-check-input">
+                                <label class="form-check-label">Required</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Order:</label>
+                            <input type="number" name="questions-__prefix__-order" value="0" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="choices-section mt-3" style="display: none;">
+                        <label>Choices (one per line):</label>
+                        <textarea name="questions-__prefix__-choices_text" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+                        <button type="button" id="add-question" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-plus"></i> Thêm câu hỏi
+                </button>
+    </div>
+    
+    <button type="submit" class="btn btn-success mt-3">Create Survey</button>
+    <a href="{% url 'survey_list' %}" class="btn btn-secondary mt-3">Cancel</a>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let formIndex = {{ formset.forms|length }};
+    const maxForms = 20;
+    
+    function toggleChoicesSection(questionForm) {
+        const typeSelect = questionForm.querySelector('select[name$="-question_type"]');
+        const choicesSection = questionForm.querySelector('.choices-section');
+        
+        if (typeSelect && choicesSection) {
+            if (typeSelect.value === 'choice') {
+                choicesSection.style.display = 'block';
+            } else {
+                choicesSection.style.display = 'none';
+            }
+        }
+    }
+    
+    document.querySelectorAll('.question-form').forEach(function(form) {
+        const typeSelect = form.querySelector('select[name$="-question_type"]');
+        if (typeSelect) {
+            toggleChoicesSection(form);
+            typeSelect.addEventListener('change', function() {
+                toggleChoicesSection(form);
+            });
+        }
+    });
+    
+    document.getElementById('add-question').addEventListener('click', function() {
+        if (formIndex >= maxForms) {
+            alert('Maximum ' + maxForms + ' questions allowed');
+            return;
+        }
+        
+        const emptyForm = document.getElementById('empty-form');
+        const newForm = emptyForm.innerHTML.replace(/__prefix__/g, formIndex);
+        
+        const questionForms = document.getElementById('question-forms');
+        const div = document.createElement('div');
+        div.innerHTML = newForm;
+        questionForms.appendChild(div.firstElementChild);
+        
+        const totalForms = document.getElementById('id_questions-TOTAL_FORMS');
+        totalForms.value = parseInt(totalForms.value) + 1;
+        
+        const newQuestionForm = questionForms.lastElementChild;
+        const typeSelect = newQuestionForm.querySelector('select[name$="-question_type"]');
+        if (typeSelect) {
+            typeSelect.addEventListener('change', function() {
+                toggleChoicesSection(newQuestionForm);
+            });
+        }
+        
+        updateQuestionNumbers();
+        formIndex++;
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-question') || e.target.parentNode.classList.contains('remove-question')) {
+            const questionForm = e.target.closest('.question-form');
+            const deleteCheckbox = questionForm.querySelector('input[name$="-DELETE"]');
+            
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+                questionForm.style.display = 'none';
+            } else {
+                questionForm.remove();
+                const totalForms = document.getElementById('id_questions-TOTAL_FORMS');
+                totalForms.value = parseInt(totalForms.value) - 1;
+            }
+            
+            updateQuestionNumbers();
+        }
+    });
+    
+    function updateQuestionNumbers() {
+        let count = 1;
+        document.querySelectorAll('.question-form:not([style*="display: none"])').forEach(function(form) {
+            const header = form.querySelector('h6');
+            if (header) {
+                header.textContent = 'Question ' + count;
+            }
+            count++;
+        });
+    }
+});
+</script>
+
+<style>
+.question-form {
+    position: relative;
+}
+.question-form .form-control, .question-form .form-select {
+    margin-bottom: 0.5rem;
+}
+
+</style>
+{% endblock %}

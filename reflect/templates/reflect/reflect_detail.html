@@ -2,44 +2,29 @@
 {% load static %}
 
 {% block content %}
-
 <div class="container mt-4">
     <h4>Chi tiết phản ánh</h4>
 
     <!-- Thông tin phản ánh -->
     <h1>{{ reflect.title }}</h1>
     <p><b>Người tạo:</b> {{ reflect.display_student }}</p>
-
     {% if not reflect.anonymous %}
         <p><b>Lớp:</b> {{ reflect.student.sv.lop }}</p>
         <p><b>Email:</b> {{ reflect.student.sv.email }}</p>
     {% endif %}
-
     <p><b>Ngày tạo:</b> {{ reflect.created_at|date:"d/m/Y H:i" }}</p>
-
-    <p><b>Lĩnh vực:</b>
-        {% if reflect.type %}
-            {{ reflect.type.name_type }}
-        {% else %}
-            Chưa chọn
-        {% endif %}
-    </p>
-
-    <p><b>Bộ môn:</b>
-        {% if reflect.bo_mon %}
-            {{ reflect.bo_mon.ten }}
-        {% else %}
-            Chưa chọn
-        {% endif %}
-    </p>
-
+    <p><b>Lĩnh vực:</b> {% if reflect.type %}{{ reflect.type.name_type }}{% else %}Chưa chọn{% endif %}</p>
+    <p><b>Bộ môn:</b> {% if reflect.bo_mon %}{{ reflect.bo_mon.ten }}{% else %}Chưa chọn{% endif %}</p>
     <p><b>Nội dung:</b> {{ reflect.content }}</p>
 
-    {% if reflect.attachment %}
-        <p><b>File đính kèm:</b> 
-            <a href="{{ reflect.attachment.url }}">📎 {{ reflect.attachment.name }}</a>
-        </p>
-    {% endif %}
+    <!-- File đính kèm phản ánh -->
+    <div id="attachments">
+        {% if reflect.attachment %}
+            <a class="attachment" href="{{ reflect.attachment.url }}" data-name="{{ reflect.attachment.name }}">
+                {{ reflect.attachment.name }}
+            </a>
+        {% endif %}
+    </div>
 
     <hr>
 
@@ -48,27 +33,22 @@
     <ul>
         {% for resp in responses %}
             <li style="margin-bottom: 20px;">
-                <p><b>Người trả lời:</b>
-                    {% if resp.teacher.gv %}
-                        {{ resp.teacher.gv.ho_ten }}
-                    {% else %}
-                        {{ resp.teacher.get_full_name|default:resp.teacher.username }}
-                    {% endif %}
-                </p>
-
+                <p><b>Người trả lời:</b> {% if resp.teacher.gv %}{{ resp.teacher.gv.ho_ten }}{% else %}{{ resp.teacher.get_full_name|default:resp.teacher.username }}{% endif %}</p>
                 {% if resp.teacher.gv %}
-                    <p><b>Phòng:</b> {{ resp.teacher.gv.bo_mon }}</p>
+                    <p><b>Phòng:</b> {{ resp.teacher.gv.bo_mon.ten }}</p>
                     <p><b>Email:</b> {{ resp.teacher.gv.email }}</p>
                 {% endif %}
-
                 <p><b>Ngày phản hồi:</b> {{ resp.created_at|date:"d/m/Y H:i" }}</p>
                 <p><b>Nội dung:</b> {{ resp.content }}</p>
 
-                {% if resp.attachment %}
-                    <p><b>File đính kèm:</b> 
-                        <a href="{{ resp.attachment.url }}">📎 {{ resp.attachment.name }}</a>
-                    </p>
-                {% endif %}
+                <!-- File đính kèm phản hồi -->
+                <div id="resp-attachments-{{ resp.id }}">
+                    {% if resp.attachment %}
+                        <a class="attachment" href="{{ resp.attachment.url }}" data-name="{{ resp.attachment.name }}">
+                            {{ resp.attachment.name }}
+                        </a>
+                    {% endif %}
+                </div>
 
                 {% if user == reflect.student %}
                     <form method="post" action="{% url 'rate_response' resp.id %}">
@@ -94,9 +74,72 @@
         <form method="post" enctype="multipart/form-data" action="{% url 'create_response' reflect.id %}">
             {% csrf_token %}
             {{ form.as_p }}
-            <button type="submit" class="btn btn-primary">Tạo phản hồi</button>
+            <!-- Preview ảnh upload -->
+            <div class="mt-2">
+                <img id="attachment-preview" src="#" alt="Preview" style="display:none; max-width: 300px; max-height: 300px; border:1px solid #ccc; padding:5px;">
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">Tạo phản hồi</button>
         </form>
     {% endif %}
 </div>
+{% endblock %}
 
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // ================= Hiển thị ảnh đính kèm đã upload =================
+    function showImages(container) {
+        const attachments = container.querySelectorAll(".attachment");
+        attachments.forEach(a => {
+            const url = a.href.toLowerCase();
+            if (url.endsWith(".jpg") || url.endsWith(".jpeg") || url.endsWith(".png") || url.endsWith(".gif")) {
+                const img = document.createElement("img");
+                img.src = a.href;
+                img.alt = a.dataset.name;
+                img.style.maxWidth = "300px";
+                img.style.height = "auto";
+                img.classList.add("mb-2");
+                a.parentNode.insertBefore(img, a);
+            }
+        });
+    }
+
+    // Phản ánh chính
+    const reflectAttachments = document.getElementById("attachments");
+    if (reflectAttachments) showImages(reflectAttachments);
+
+    // Phản hồi
+    {% for resp in responses %}
+        const respContainer = document.getElementById("resp-attachments-{{ resp.id }}");
+        if (respContainer) showImages(respContainer);
+    {% endfor %}
+
+    // ================= Preview khi upload file mới =================
+    const attachmentInput = document.querySelector('input[name="attachment"]');
+    const preview = document.getElementById('attachment-preview');
+
+    if (attachmentInput) {
+        attachmentInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                if (file.type.startsWith('image/')) { // Chỉ preview ảnh
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.src = "#";
+                    preview.style.display = 'none';
+                }
+            } else {
+                preview.src = "#";
+                preview.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

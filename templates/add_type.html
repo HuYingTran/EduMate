@@ -1,36 +1,77 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h1>Settings Trung Tâm</h1>
+<div class="container mt-4">
+  <h1 class="mb-4 fw-bold">⚙️ Quản lý danh sách Bộ môn</h1>
 
-<h2>Bộ môn (User App)</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ bomon_form.as_p }}
-    <button type="submit" name="add_bomon">Thêm Bộ môn</button>
-</form>
+  <!-- Bộ môn -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <span>Bộ môn</span>
+      <button class="btn btn-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#bomonList">
+        📂 Hiện / Ẩn danh sách
+      </button>
+    </div>
+    <div class="card-body">
+      <form method="post" class="mb-3">
+        {% csrf_token %}
+        <div class="row g-2">
+          <div class="col-md-8">
+            {{ bomon_form.as_p }}
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" name="add_bomon" class="btn btn-success w-100">
+              ➕ Thêm Bộ môn
+            </button>
+          </div>
+        </div>
+      </form>
 
-<ul>
-{% for bm in bomon_list %}
-    <li>{{ bm.ten }}</li>
-{% empty %}
-    <li>Chưa có Bộ môn nào.</li>
-{% endfor %}
-</ul>
+      <div id="bomonList" class="collapse">
+        <ul class="list-group">
+          {% for bm in bomon_list %}
+            <li class="list-group-item">{{ bm.ten }}</li>
+          {% empty %}
+            <li class="list-group-item text-muted">Chưa có Bộ môn nào.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
 
-<hr>
+  <!-- Type -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+      <span>Type (Reflect App)</span>
+      <button class="btn btn-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#typeList">
+        📂 Hiện / Ẩn danh sách
+      </button>
+    </div>
+    <div class="card-body">
+      <form method="post" class="mb-3">
+        {% csrf_token %}
+        <div class="row g-2">
+          <div class="col-md-8">
+            {{ type_form.as_p }}
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" name="add_type" class="btn btn-primary w-100">
+              ➕ Lĩnh vực
+            </button>
+          </div>
+        </div>
+      </form>
 
-<h2>Type (Reflect App)</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ type_form.as_p }}
-    <button type="submit" name="add_type">Thêm Type</button>
-</form>
-
-<ul>
-{% for t in type_list %}
-    <li>{{ t.name_type }}</li>
-{% empty %}
-    <li>Chưa có Type nào.</li>
-{% endfor %}
-</ul>
+      <div id="typeList" class="collapse">
+        <ul class="list-group">
+          {% for t in type_list %}
+            <li class="list-group-item">{{ t.name_type }}</li>
+          {% empty %}
+            <li class="list-group-item text-muted">Chưa có Lĩnh vực nào.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

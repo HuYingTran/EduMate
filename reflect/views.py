@@ -405,9 +405,199 @@ from chat.models import ChatMessage
 
 @login_required
 def home(request):
-    surveys = Survey.objects.filter(status="active")
     chat_history = ChatMessage.objects.filter(user=request.user).order_by("created_at")  # ← Đây
     return render(request, "home.html", {
-        "surveys": surveys,
         "chat_history": chat_history,  # ← Dữ liệu này được truyền vào template
     })
+# views.py
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Survey, Question, Choice, Response, Answer
+from .forms import SurveyForm, QuestionFormSet
+
+@login_required
+def survey_list(request):
+    surveys = Survey.objects.filter(is_active=True).order_by('-created_at')
+    return render(request, 'reflect/survey_list.html', {'surveys': surveys})
+
+@login_required
+def create_survey(request):
+    if request.method == 'POST':
+        form = SurveyForm(request.POST)
+        formset = QuestionFormSet(request.POST)
+        
+        if form.is_valid() and formset.is_valid():
+            survey = form.save(commit=False)
+            survey.created_by = request.user
+            survey.save()
+            
+            formset.instance = survey
+            formset.save()
+            
+            messages.success(request, 'Survey created successfully!')
+            return redirect('survey_list')
+    else:
+        form = SurveyForm()
+        formset = QuestionFormSet()
+    
+    return render(request, 'reflect/create_survey.html', {'form': form, 'formset': formset})
+
+def take_survey(request, survey_id):
+    survey = get_object_or_404(Survey, id=survey_id, is_active=True)
+    
+    if request.method == 'POST':
+        response = Response.objects.create(survey=survey)
+        
+        for question in survey.questions.all():
+            answer_value = request.POST.get(f'question_{question.id}')
+            if answer_value:
+                answer = Answer.objects.create(response=response, question=question)
+                
+                if question.question_type == 'text':
+                    answer.text_answer = answer_value
+                elif question.question_type == 'choice':
+                    answer.choice_answer_id = answer_value
+                elif question.question_type == 'rating':
+                    answer.rating_answer = int(answer_value)
+                
+                answer.save()
+        
+        messages.success(request, 'Thank you for your response!')
+        return redirect('survey_list')
+    
+    return render(request, 'reflect/take_survey.html', {'survey': survey})
+
+def survey_complete(request):
+    return render(request, 'reflect/survey_list.html')
+
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.db.models import Avg
+from .models import Survey, Response, Answer
+
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.db.models import Avg
+from .models import Survey, Response, Answer
+
+@login_required
+def survey_results(request, survey_id):
+    survey = get_object_or_404(Survey, id=survey_id, created_by=request.user)
+    responses = Response.objects.filter(survey=survey).prefetch_related('answers__question')
+
+    # Lọc lấy hỏi đầu tiên
+    first_question = survey.questions.first()
+    filter_answer = request.GET.get("first_question_answer")
+
+    print(first_question)
+
+    if first_question and filter_answer and filter_answer != "ALL":
+        if first_question.question_type == "text":
+            responses = responses.filter(
+                answers__question=first_question,
+                answers__text_answer=filter_answer
+            )
+        elif first_question.question_type == "choice":
+            responses = responses.filter(
+                answers__question=first_question,
+                answers__choice_answer_id=filter_answer
+            )
+        elif first_question.question_type == "rating":
+            try:
+                responses = responses.filter(
+                    answers__question=first_question,
+                    answers__rating_answer=int(filter_answer)
+                )
+            except ValueError:
+                pass  # nếu filter_answer không phải số
+
+    # Chuẩn bị dữ liệu cho từng câu hỏi
+    questions_data = []
+    for question in survey.questions.all():
+        q_data = {"id": question.id, "text": question.text, "type": question.question_type}
+
+        if question.question_type == "text":
+            q_data["text_answers"] = Answer.objects.filter(
+                question=question, response__in=responses
+            ).exclude(text_answer="")
+
+        elif question.question_type == "choice":
+            total = Answer.objects.filter(
+                question=question, response__in=responses
+            ).exclude(choice_answer=None).count()
+
+            labels, counts, choices = [], [], []
+            for choice in question.choices.all():
+                count = Answer.objects.filter(
+                    question=question, choice_answer=choice, response__in=responses
+                ).count()
+                percent = round((count / total) * 100, 1) if total > 0 else 0
+                choices.append({"text": choice.text, "count": count, "percent": percent})
+                labels.append(choice.text)
+                counts.append(count)
+
+            q_data.update({"choices": choices, "chart_labels": labels, "chart_counts": counts})
+
+        elif question.question_type == "rating":
+            ratings = Answer.objects.filter(question=question, response__in=responses).exclude(rating_answer=None)
+            avg_rating = ratings.aggregate(avg=Avg("rating_answer"))["avg"]
+            q_data["average_rating"] = round(avg_rating, 1) if avg_rating else None
+
+            breakdown, labels, counts = [], [], []
+            total = ratings.count()
+            for i in range(5, 0, -1):
+                count = ratings.filter(rating_answer=i).count()
+                percent = round((count / total) * 100, 1) if total > 0 else 0
+                breakdown.append({"stars": i, "count": count, "percent": percent})
+                labels.append(f"{i}★")
+                counts.append(count)
+
+            q_data.update({"rating_breakdown": breakdown, "chart_labels": labels, "chart_counts": counts})
+
+        questions_data.append(q_data)
+        # print(questions_data)
+
+    return render(request, "reflect/survey_result.html", {
+            "survey": survey,
+            "responses": responses,
+            "questions": questions_data,
+            "first_question": first_question,
+            "rating_choices": [1, 2, 3, 4, 5],  # thêm dòng này`
+})
+
+
+@login_required
+def edit_survey(request, survey_id):
+    survey = get_object_or_404(Survey, id=survey_id, created_by=request.user)
+
+    if request.method == 'POST':
+        form = SurveyForm(request.POST, instance=survey)
+        formset = QuestionFormSet(request.POST, instance=survey)
+
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            messages.success(request, 'Survey updated successfully!')
+            return redirect('survey_list')
+    else:
+        form = SurveyForm(instance=survey)
+        formset = QuestionFormSet(instance=survey)
+
+    return render(request, 'reflect/edit_survey.html', {
+        'form': form,
+        'formset': formset,
+        'survey': survey
+    })
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import Survey
+
+def delete_survey(request, survey_id):
+    survey = get_object_or_404(Survey, id=survey_id)
+    if request.method == "POST":
+        survey.delete()
+        messages.success(request, "Xóa khảo sát thành công.")
+        return redirect("survey_list")
+    return redirect("survey_list")

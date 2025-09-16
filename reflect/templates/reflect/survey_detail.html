@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">{{ survey.title }}</h2>
+    <p class="text-muted">{{ survey.description }}</p>
+
+    <form method="post" action="{% url 'submit_response' survey.id %}">
+        {% csrf_token %}
+        {% for q in survey.questions.all %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <p class="fw-bold">{{ q.text }}</p>
+                
+                {% if q.question_type == "text" %}
+                    <input type="text" name="question_{{ q.id }}" class="form-control">
+
+                {% elif q.question_type == "textarea" %}
+                    <textarea name="question_{{ q.id }}" class="form-control" rows="3"></textarea>
+
+                {% elif q.question_type == "radio" %}
+                    {% for choice in q.choices.all %}
+                    <div class="form-check">
+                        <input type="radio" class="form-check-input" name="question_{{ q.id }}" value="{{ choice.id }}" id="q{{ q.id }}_c{{ choice.id }}">
+                        <label for="q{{ q.id }}_c{{ choice.id }}" class="form-check-label">{{ choice.text }}</label>
+                    </div>
+                    {% endfor %}
+
+                {% elif q.question_type == "checkbox" %}
+                    {% for choice in q.choices.all %}
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="question_{{ q.id }}" value="{{ choice.id }}" id="q{{ q.id }}_c{{ choice.id }}">
+                        <label for="q{{ q.id }}_c{{ choice.id }}" class="form-check-label">{{ choice.text }}</label>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Gửi câu trả lời</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -21,6 +21,8 @@ from django.shortcuts import render
 from user.views import type_view  # view chung có thể để trong app user
 from reflect.views import home
 
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path("", home, name="home"),
@@ -30,3 +32,6 @@ urlpatterns = [
     path("add_type/", type_view, name="add_type"),
     path("chat/", include("chat.urls"))
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

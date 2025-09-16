@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Chỉnh sửa Khảo sát - EduMate{% endblock %}
+
+{% block content %}
+<h2>Chỉnh sửa phiếu khảo sát</h2>
+<form method="post" id="survey-form">
+    {% csrf_token %}
+    
+    <div class="card mb-4">
+        <div class="card-header"><h5>Tiêu đề</h5></div>
+        <div class="card-body">
+            {{ form.as_p }}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5>Câu hỏi</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            {{ formset.management_form }}
+            <div id="question-forms">
+                {% for form in formset %}
+                <div class="question-form border p-3 mb-3" data-form-index="{{ forloop.counter0 }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="text-primary">Question {{ forloop.counter }}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-question">Xóa
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label>Question Text:</label>
+                            {{ form.text }}
+                        </div>
+                        <div class="col-md-4">
+                            <label>Type:</label>
+                            {{ form.question_type }}
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                {{ form.is_required }}
+                                <label class="form-check-label">Required</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Order:</label>
+                            {{ form.order }}
+                        </div>
+                    </div>
+
+                    <!-- <div class="choices-section mt-3" style="display: none;">
+                        <label>Choices (one per line):</label>
+                        {{ form.choices_text }}
+                    </div> -->
+
+                    <!-- {{ form.DELETE }}  -->
+                    {{ form.id }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- empty form template giống create_survey.html -->
+            <div id="empty-form" style="display: none;">
+                <div class="question-form border p-3 mb-3" data-form-index="__prefix__">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="text-primary">New Question</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-question">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label>Question Text:</label>
+                            <input type="text" name="questions-__prefix__-text" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label>Type:</label>
+                            <select name="questions-__prefix__-question_type" class="form-select">
+                                <option value="choice">Multiple Choice</option>
+                                <option value="text">Text</option>
+                                <option value="rating">Rating (1-5)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" name="questions-__prefix__-is_required" class="form-check-input">
+                                <label class="form-check-label">Required</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Order:</label>
+                            <input type="number" name="questions-__prefix__-order" value="0" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="choices-section mt-3" style="display: none;">
+                        <label>Choices (one per line):</label>
+                        <textarea name="questions-__prefix__-choices_text" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+            <button type="button" id="add-question" class="btn btn-sm btn-outline-primary">
+        <i class="fas fa-plus"></i> Thêm câu hỏi
+    </button>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Save Changes</button>
+    <a href="{% url 'survey_list' %}" class="btn btn-secondary mt-3">Cancel</a>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Xử lý nút xóa câu hỏi
+            document.addEventListener("click", function(event) {
+                if (event.target.closest(".remove-question")) {
+                    let questionForm = event.target.closest(".question-form");
+                    if (questionForm) {
+                        // Tìm input DELETE trong form này
+                        let deleteInput = questionForm.querySelector("input[type='checkbox'][name$='-DELETE']");
+                        if (deleteInput) {
+                            // Đánh dấu xóa
+                            deleteInput.checked = true;
+                            // Ẩn form đi
+                            questionForm.style.display = "none";
+                        } else {
+                            // Nếu là form mới chưa save -> xóa hẳn khỏi DOM
+                            questionForm.remove();
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}
+

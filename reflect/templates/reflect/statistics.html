@@ -12,103 +12,77 @@
     <button type="submit" class="btn btn-primary ms-2">Lọc</button>
   </form>
 
-  <!-- Biểu đồ số lượng phản ánh theo Type -->
-  <div class="mb-5">
-    <h4>Số phản ánh theo loại ({{ current_month }})</h4>
-    <canvas id="reflectByTypeChart" height="120"></canvas>
+  <!-- Biểu đồ bar/line 2 hàng x 2 cột -->
+  <div class="row">
+    <div class="col-md-6 mb-5">
+      <h5>Số phản ánh theo loại ({{ current_month }})</h5>
+      <div style="height:250px;">
+        <canvas id="reflectByTypeChart"></canvas>
+      </div>
+      <table class="table table-bordered mt-2">
+        <thead><tr><th>Loại</th><th>Số phản ánh</th></tr></thead>
+        <tbody>
+          {% for r in reflect_by_type %}
+          <tr><td>{{ r.name_type }}</td><td>{{ r.total_reflects }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-    <!-- Bảng -->
-    <table class="table table-bordered mt-3">
-      <thead>
-        <tr>
-          <th>Loại</th>
-          <th>Số phản ánh</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in reflect_by_type %}
-        <tr>
-          <td>{{ r.name_type }}</td>
-          <td>{{ r.total_reflects }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="col-md-6 mb-5">
+      <h5>Rating trung bình theo loại ({{ current_month }})</h5>
+      <div style="height:250px;">
+        <canvas id="ratingByTypeChart"></canvas>
+      </div>
+      <table class="table table-bordered mt-2">
+        <thead><tr><th>Loại</th><th>Rating trung bình</th></tr></thead>
+        <tbody>
+          {% for r in rating_by_type %}
+          <tr><td>{{ r.name_type }}</td><td>{{ r.avg_rating|floatformat:1 }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col-md-6 mb-5">
+      <h5>Xu hướng phản ánh theo tháng</h5>
+      <div style="height:200px;">
+        <canvas id="reflectsByMonthChart"></canvas>
+      </div>
+      <table class="table table-bordered mt-2">
+        <thead><tr><th>Tháng</th><th>Số phản ánh</th></tr></thead>
+        <tbody>
+          {% for r in reflects_by_month %}
+          <tr><td>{{ r.month }}</td><td>{{ r.total }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 
-  <!-- Biểu đồ rating trung bình theo Type -->
-  <div class="mb-5">
-    <h4>Rating trung bình theo loại ({{ current_month }})</h4>
-    <canvas id="ratingByTypeChart" height="120"></canvas>
-
-    <table class="table table-bordered mt-3">
-      <thead>
-        <tr>
-          <th>Loại</th>
-          <th>Rating trung bình</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in rating_by_type %}
-        <tr>
-          <td>{{ r.name_type }}</td>
-          <td>{{ r.avg_rating|floatformat:1 }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Biểu đồ xu hướng phản ánh theo tháng -->
-  <div class="mb-5">
-    <h4>Xu hướng phản ánh theo tháng</h4>
-    <canvas id="reflectsByMonthChart" height="120"></canvas>
-
-    <table class="table table-bordered mt-3">
-      <thead>
-        <tr>
-          <th>Tháng</th>
-          <th>Số phản ánh</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in reflects_by_month %}
-        <tr>
-          <td>{{ r.month }}</td>
-          <td>{{ r.total }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Biểu đồ quạt tỷ lệ phản ánh trong tháng -->
-  <div class="mb-5">
-    <h4>Tỷ lệ phản ánh theo loại ({{ current_month }})</h4>
-    <canvas id="reflectPieChart" height="120"></canvas>
-
-    <table class="table table-bordered mt-3">
-      <thead>
-        <tr>
-          <th>Loại</th>
-          <th>Số phản ánh trong tháng</th>
-        </tr>
-      </thead>
+  <!-- Biểu đồ quạt riêng 1 hàng -->
+<div class="row mb-5">
+  <div class="col-md-8 offset-md-2">
+    <h5 class="text-center">Tỷ lệ phản ánh theo loại ({{ current_month }})</h5>
+    <div style="height:350px; max-width:500px; margin:auto;">
+      <canvas id="reflectPieChart"></canvas>
+    </div>
+    <table class="table table-bordered mt-2">
+      <thead><tr><th>Loại</th><th>Số phản ánh trong tháng</th></tr></thead>
       <tbody>
         {% for r in reflects_pie_month %}
-        <tr>
-          <td>{{ r.name_type }}</td>
-          <td>{{ r.total_in_month }}</td>
-        </tr>
+        <tr><td>{{ r.name_type }}</td><td>{{ r.total_in_month }}</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+</div>
+
 
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   const reflectByType = {{ reflect_by_type|safe }};
@@ -116,77 +90,97 @@
   const reflectsByMonth = {{ reflects_by_month|safe }};
   const reflectsPieMonth = {{ reflects_pie_month|safe }};
 
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            if(context.dataset.type === 'doughnut') {
+              let total = context.dataset.data.reduce((a,b) => a+b, 0);
+              let value = context.raw;
+              let percentage = total ? (value/total*100).toFixed(1) : 0;
+              return `${context.label}: ${value} (${percentage}%)`;
+            }
+            return `${context.dataset.label}: ${context.raw}`;
+          }
+        }
+      }
+    },
+    layout: { padding: 10 },
+    scales: { y: { beginAtZero: true } }
+  };
+
   new Chart(document.getElementById('reflectByTypeChart'), {
     type: 'bar',
     data: {
       labels: reflectByType.map(r => r.name_type),
-      datasets: [{
-        label: 'Số phản ánh',
-        data: reflectByType.map(r => r.total_reflects),
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-      }]
-    }
+      datasets: [{ label: 'Số phản ánh', data: reflectByType.map(r => r.total_reflects), backgroundColor: 'rgba(54, 162, 235, 0.6)' }]
+    },
+    options: chartOptions
   });
 
   new Chart(document.getElementById('ratingByTypeChart'), {
     type: 'bar',
     data: {
       labels: ratingByType.map(r => r.name_type),
-      datasets: [{
-        label: 'Rating trung bình',
-        data: ratingByType.map(r => r.avg_rating || 0),
-        backgroundColor: 'rgba(255, 206, 86, 0.6)',
-      }]
-    }
+      datasets: [{ label: 'Rating trung bình', data: ratingByType.map(r => r.avg_rating || 0), backgroundColor: 'rgba(255, 206, 86, 0.6)' }]
+    },
+    options: chartOptions
   });
 
   new Chart(document.getElementById('reflectsByMonthChart'), {
     type: 'line',
     data: {
       labels: reflectsByMonth.map(r => r.month),
-      datasets: [{
-        label: 'Số phản ánh',
-        data: reflectsByMonth.map(r => r.total),
-        borderColor: 'rgba(75, 192, 192, 1)',
-        fill: false,
-        tension: 0.1
-      }]
-    }
+      datasets: [{ label: 'Số phản ánh', data: reflectsByMonth.map(r => r.total), borderColor: 'rgba(75, 192, 192, 1)', fill: false, tension: 0.1 }]
+    },
+    options: chartOptions
   });
 
-  new Chart(document.getElementById('reflectPieChart'), {
-    type: 'doughnut',
-    data: {
-      labels: reflectsPieMonth.map(r => r.name_type),
-      datasets: [{
-        label: 'Số phản ánh',
-        data: reflectsPieMonth.map(r => r.total_in_month),
-        backgroundColor: [
-          'rgba(255, 99, 132, 0.6)',
-          'rgba(54, 162, 235, 0.6)',
-          'rgba(255, 206, 86, 0.6)',
-          'rgba(75, 192, 192, 0.6)',
-          'rgba(153, 102, 255, 0.6)',
-          'rgba(255, 159, 64, 0.6)'
-        ]
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'right' },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              let total = context.dataset.data.reduce((a,b) => a+b, 0);
-              let value = context.raw;
-              let percentage = total ? (value/total*100).toFixed(1) : 0;
-              return `${context.label}: ${value} (${percentage}%)`;
-            }
+new Chart(document.getElementById('reflectPieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: reflectsPieMonth.map(r => r.name_type),
+    datasets: [{
+      label: 'Số phản ánh',
+      data: reflectsPieMonth.map(r => r.total_in_month),
+      backgroundColor: [
+        '#4e79a7',
+        '#f28e2b',
+        '#e15759',
+        '#76b7b2',
+        '#59a14f',
+        '#edc949'
+      ],
+      borderColor: '#fff',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '40%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: { boxWidth: 20, padding: 15 }
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            let total = context.dataset.data.reduce((a,b) => a+b, 0);
+            let value = context.raw;
+            let percent = total ? (value/total*100).toFixed(1) : 0;
+            return `${context.label}: ${value} (${percent}%)`;
           }
         }
       }
     }
-  });
+  }
+});
+
 </script>
 {% endblock %}

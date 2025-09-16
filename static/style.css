@@ -1,86 +1,158 @@
-/* style.css - theme xanh nhạt */
+/* ================== Theme Màu Xanh Nhạt & Trắng ================== */
+:root {
+    --primary-blue: #3399ff;   /* xanh dương nhạt chính */
+    --light-blue: #e6f2ff;     /* xanh nhạt nền */
+    --lighter-blue: #f0f8ff;   /* xanh siêu nhạt */
+    --dark-blue: #0059b3;      /* xanh đậm */
+    --white: #ffffff;
+    --gray-50: #f9fafb;
+    --gray-200: #e5e7eb;
+    --gray-600: #4b5563;
+    --success: #10b981;
+    --danger: #ef4444;
+}
 
-/* Body & fonts */
+/* ================== Body & Fonts ================== */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #e6f0ff; /* xanh nhạt */
+    background-color: var(--lighter-blue);
     color: #1a1a1a;
+    font-size: 0.95rem;
+    line-height: 1.5;
 }
 
-/* Navbar */
+/* ================== Navbar ================== */
 .navbar {
-    background-color: #3399ff !important; /* xanh dương */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: var(--primary-blue) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
-
 .navbar-brand {
     font-weight: bold;
-    font-size: 1.5rem;
-    color: #fff !important;
+    font-size: 1.3rem;
+    color: var(--white) !important;
 }
-
 .navbar-nav .nav-link {
-    color: #f0f8ff !important; /* trắng nhạt */
+    color: var(--white) !important;
     transition: color 0.3s;
 }
-
 .navbar-nav .nav-link:hover {
-    color: #ffe680 !important; /* vàng nhạt nổi bật */
+    color: #ffe680 !important;
 }
 
-.navbar-nav .dropdown-menu {
-    background-color: #66b3ff; /* xanh sáng hơn */
+/* ================== Buttons ================== */
+.btn-primary {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 0.9rem;
+}
+.btn-primary:hover {
+    background-color: #66b3ff;
+    border-color: #66b3ff;
+}
+.btn-outline-secondary {
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 0.9rem;
+}
+.btn-outline-secondary:hover {
+    background-color: var(--light-blue);
+    color: var(--dark-blue);
 }
 
-.navbar-nav .dropdown-item {
-    color: #fff;
-    transition: background-color 0.3s;
-}
-
-.navbar-nav .dropdown-item:hover {
-    background-color: #3399ff;
-}
-
-/* Auth buttons */
-.btn-outline-light {
-    border-width: 2px;
-    color: #fff;
-}
-
-.btn-outline-light:hover {
-    background-color: #ffe680;
-    border-color: #ffe680;
-    color: #000;
-}
-
-/* Main content */
-main.container {
-    padding-top: 20px;
-    padding-bottom: 40px;
-}
-
-/* Cards */
+/* ================== Cards ================== */
 .card {
+    background-color: var(--white);
     border-radius: 10px;
-    border: none;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    background-color: #f0f8ff;
+    border: 1px solid var(--gray-200);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    padding: 20px;
+}
+.card h2, .card h5, .card h6 {
+    color: var(--dark-blue);
+    font-weight: 600;
 }
 
-/* Footer */
+/* ================== Input & Form ================== */
+form input[type="text"],
+form input[type="email"],
+form input[type="number"],
+form input[type="password"],
+form select,
+form textarea {
+    background-color: var(--white);
+    border: 1px solid #99ccff;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    color: #1a1a1a;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+}
+form input:focus,
+form select:focus,
+form textarea:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 4px rgba(51, 153, 255, 0.3);
+    outline: none;
+}
+form label {
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: block;
+    color: var(--dark-blue);
+    font-size: 0.85rem;
+}
+form input::placeholder,
+form textarea::placeholder {
+    color: #7a8ca5;
+    font-size: 0.85rem;
+}
+form input[type="checkbox"],
+form input[type="radio"] {
+    accent-color: var(--primary-blue);
+    transform: scale(0.9);
+}
+
+/* ================== List Group (Survey List, v.v) ================== */
+.list-group {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+}
+.list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border: none;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--white);
+    font-size: 0.9rem;
+}
+.list-group-item:nth-child(even) {
+    background: var(--lighter-blue);
+}
+.list-group-item:hover {
+    background: var(--light-blue);
+}
+.list-group-item a {
+    color: var(--primary-blue);
+    text-decoration: none;
+    font-weight: 500;
+}
+.list-group-item a:hover {
+    text-decoration: underline;
+}
+
+/* ================== Footer ================== */
 footer {
     text-align: center;
-    padding: 20px 0;
-    background-color: #3399ff;
-    color: #fff;
-    margin-top: 40px;
-}
-
-
-.chart-container {
-    max-width: 600px;   /* chiều rộng tối đa */
-    margin: auto;       /* căn giữa */
-}
-canvas {
-    max-height: 300px;  /* chiều cao tối đa */
+    padding: 15px 0;
+    background-color: var(--primary-blue);
+    color: var(--white);
+    margin-top: 30px;
+    font-size: 0.85rem;
 }

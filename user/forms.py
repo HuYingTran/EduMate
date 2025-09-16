@@ -26,17 +26,38 @@ class BaseUserLinkedForm(forms.ModelForm):
 
 # ================== SINH VIÊN ================== #
 class SVForm(BaseUserLinkedForm):
+    ngay_sinh = forms.DateField(
+        input_formats=['%d/%m/%Y', '%Y-%m-%d'],  # Cho phép nhập DD/MM/YYYY hoặc YYYY-MM-DD
+        widget=forms.DateInput(attrs={
+            'type': 'date',  # HTML5 date picker
+            'class': 'form-control',
+        })
+    )
     class Meta:
         model = SV
+        fields = "__all__"
         fields = [
             "email", "ho_ten", "ngay_sinh", "gioi_tinh", "noi_sinh", "dan_toc", "que_quan",
             "so_hieu_cong_an", "can_cuoc", "ngay_cap", "noi_cap",
             "dia_chi_lien_lac", "dien_thoai", "lop", "khoa", "status"
         ]
-
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Giá trị mặc định khi thêm mới
+        if not self.instance.pk:  # Chỉ khi tạo mới
+            self.fields['dan_toc'].initial = "Kinh"
+            self.fields['noi_cap'].initial = " Cục Cảnh sát quản lý hành chính về trật tự xã hội"
+            self.fields['dia_chi_lien_lac'].initial = "Trường Đại học Kỹ thuật - Hậu cần CAND"
 
 # ================== GIẢNG VIÊN ================== #
 class GVForm(BaseUserLinkedForm):
+    ngay_sinh = forms.DateField(
+        input_formats=['%d/%m/%Y', '%Y-%m-%d'],
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+        })
+    )
     class Meta:
         model = GV
         fields = [

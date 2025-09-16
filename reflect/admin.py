@@ -20,3 +20,4 @@ class ReflectResponseAdmin(admin.ModelAdmin):
 class DocumentAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
+    

@@ -3,6 +3,13 @@
 {% block title %}Quản lý câu hỏi{% endblock %}
 
 {% block content %}
+<form action="{% url 'import_qna_excel' %}" method="post" enctype="multipart/form-data" class="mb-3">
+  {% csrf_token %}
+  <div class="input-group">
+    <input type="file" name="excel_file" class="form-control" accept=".xlsx,.xls" required>
+    <button type="submit" class="btn btn-success">📤 Import Excel</button>
+  </div>
+</form>
 <h2>❓ Câu hỏi chưa trả lời</h2>
 {% if unanswered %}
   <ul class="list-group mt-3">
